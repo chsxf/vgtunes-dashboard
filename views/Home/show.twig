@@ -1,0 +1,21 @@
+{% extends "@mfx/HTML.twig" %}
+
+{% block body %}
+	{{ parent() }}
+
+	<h1>Latest Albums</h1>
+
+	<ul>
+		{% for slug, name in albums %}
+			<li>{{ name }}</li>
+		{% else %}
+			<li>
+				<em>No album found :(</em>
+			</li>
+		{% endfor %}
+	</ul>
+
+	<p>
+		<a href="/JsonGenerator/generate" target="_blank">Generate JSON</a>
+	</p>
+{% endblock %}
