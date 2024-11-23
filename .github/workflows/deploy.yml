@@ -32,7 +32,7 @@ jobs:
         username: ${{ secrets.ftp_username }}
         password: ${{ secrets.ftp_password }}
         protocol: ftps
-        server-dir: vgtunes/dashboard
+        server-dir: vgtunes/dashboard/
         exclude: |
           **/.git*
           **/.git*/**
