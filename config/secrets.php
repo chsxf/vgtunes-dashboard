@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'DB_HOST' => 'localhost',
     'DB_NAME' => 'vgtunes',

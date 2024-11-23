@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use chsxf\MFX\IDatabaseUpdater;
 
 final class AppDatabaseUpdater implements IDatabaseUpdater

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use chsxf\MFX\Config;
 
 $secrets = require_once('secrets.php');
