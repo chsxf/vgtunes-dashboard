@@ -29,6 +29,8 @@ final class Album extends BaseRouteProvider
     #[Route, AnonymousRoute, RequiredRequestMethod(RequestMethod::GET), RequiredRequestMethod(RequestMethod::POST)]
     public function add(): RequestResult
     {
+        $this->serviceProvider->getScriptService()->add('/js/prefill.js');
+
         $validator = new DataValidator();
         $validator->createField(self::NAME, FieldType::TEXT);
 
