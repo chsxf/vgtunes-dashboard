@@ -1,0 +1,16 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+RewriteBase /
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.+)_\d{10,}\.(js|xml|css|swf|png|jpg|gif)$ $1.$2 [L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /entrypoint.php [L]
+</IfModule>
+
+DirectoryIndex entrypoint.php
+Options +FollowSymLinks -Indexes

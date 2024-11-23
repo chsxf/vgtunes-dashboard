@@ -1,0 +1,8 @@
+services:
+  php:
+    build: .
+    volumes:
+      - ./:/var/www/html
+      - /var/log/apache2/app:/var/log/apache2/
+    ports:
+      - 8080:80

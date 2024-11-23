@@ -1,0 +1,20 @@
+{
+    "name": "chsxf/mfx-project-template",
+    "description": "A template package for bootstraping MFX projects",
+    "homepage": "https://github.com/chsxf/mfx-project-template",
+    "require": {
+        "chsxf/mfx": "^2"
+    },
+    "autoload": {
+        "psr-4": {
+            "": "routes"
+        }
+    },
+    "authors": [
+        {
+            "name": "Christophe SAUVEUR",
+            "email": "chsxf.pro@gmail.com"
+        }
+    ],
+    "license": "MIT"
+}
