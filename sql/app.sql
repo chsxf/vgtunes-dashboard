@@ -39,3 +39,10 @@ ALTER TABLE `albums`
 
 ALTER TABLE `albums` 
     ADD FOREIGN KEY (`artist_id`) REFERENCES `artists`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- [VERSION: 4]
+
+ALTER TABLE `albums`
+    DROP FOREIGN KEY `albums_ibfk_1`;
+ALTER TABLE `albums`
+    ADD CONSTRAINT `albums_ibfk_1` FOREIGN KEY (`artist_id`) REFERENCES `artists`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
