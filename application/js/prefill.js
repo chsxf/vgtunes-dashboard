@@ -67,6 +67,18 @@ function clearSuggestions() {
   $("#suggestions").hide();
 }
 
+function setupCoverInteractions() {
+  $("#cover img").on("click", function () {
+    window.open($(this).attr("src"), "_blank");
+  });
+  $("#cover a").on("click", function (e) {
+    e.stopPropagation();
+    let imgUrl = $("#cover img").attr("src");
+    let processingUrl = `/ImageProcessing/covers?url=${encodeURI(imgUrl)}`;
+    window.open(processingUrl, "_blank");
+  });
+}
+
 function setupPrefill() {
   $("#name").on("input", function () {
     setupSuggestionTimeout();
@@ -83,10 +95,9 @@ function setupPrefill() {
   });
 
   clearSuggestions();
+
   $("#cover").hide();
-  $("#cover img").on("click", function () {
-    window.open($(this).attr("src"), "_blank");
-  });
+  setupCoverInteractions();
 }
 
 $(function () {
