@@ -85,7 +85,7 @@ final class Album extends BaseRouteProvider
 
                 $slug = null;
                 while ($slug === null) {
-                    $candidateSlug = StringTools::generateRandomString(8, StringTools::CHARSET_ALPHANUMERIC_CI);
+                    $candidateSlug = StringTools::generateRandomString(8, StringTools::CHARSET_ALPHANUMERIC_LC);
                     $sql = 'SELECT COUNT(`id`) FROM `albums` WHERE `slug` = ?';
                     $count = $dbConn->getValue($sql, $candidateSlug);
                     if ($count === false || $count === null) {
