@@ -17,8 +17,10 @@ final class Album extends BaseRouteProvider
 {
     private const PLATFORM_ID_SUFFIX = '_platform_id';
     private const PLATFORM_ID_MAX_LENGTH = 32;
+    private const NAMES_MAX_LENGTH = 256;
 
     private const NAME = 'name';
+    private const ARTIST_NAME = 'artist_name';
     private const APPLE_MUSIC = 'apple_music';
     private const APPLE_MUSIC_PLATFORM_ID = self::APPLE_MUSIC . self::PLATFORM_ID_SUFFIX;
     private const DEEZER = 'deezer';
@@ -31,10 +33,15 @@ final class Album extends BaseRouteProvider
     {
         $this->serviceProvider->getScriptService()->add('/js/prefill.js');
 
-        $validator = new DataValidator();
-        $validator->createField(self::NAME, FieldType::TEXT);
+        $namesExtraArguments = ['size' => strval(self::NAMES_MAX_LENGTH), 'maxlength' => strval(self::NAMES_MAX_LENGTH)];
 
-        $platformIdExtraArguments = ['maxlength' => strval(self::PLATFORM_ID_MAX_LENGTH)];
+        $validator = new DataValidator();
+        $validator->createField(self::NAME, FieldType::TEXT, extras: $namesExtraArguments)
+            ->addFilter(RegExp::stringLength(max: self::NAMES_MAX_LENGTH));
+        $validator->createField(self::ARTIST_NAME, FieldType::TEXT, extras: $namesExtraArguments)
+            ->addFilter(RegExp::stringLength(max: self::NAMES_MAX_LENGTH));
+
+        $platformIdExtraArguments = ['size' => strval(self::PLATFORM_ID_MAX_LENGTH), 'maxlength' => strval(self::PLATFORM_ID_MAX_LENGTH)];
 
         $validator->createField(self::APPLE_MUSIC_PLATFORM_ID, FieldType::TEXT, required: false, extras: $platformIdExtraArguments)
             ->addFilter(RegExp::stringLength(max: self::PLATFORM_ID_MAX_LENGTH));
@@ -67,6 +74,15 @@ final class Album extends BaseRouteProvider
                     throw new Exception('At least one platform ID must be filled in');
                 }
 
+                $sql = "SELECT `id` FROM `artists` WHERE `name` = ?";
+                if (($artistId = $dbConn->getValue($sql, $validator[self::ARTIST_NAME])) === false) {
+                    $sql = "INSERT INTO `artists` (`name`) VALUE (?)";
+                    if ($dbConn->exec($sql, $validator[self::ARTIST_NAME]) === false) {
+                        throw new Exception('A database error has occured');
+                    }
+                    $artistId = $dbConn->lastInsertId();
+                }
+
                 $slug = null;
                 while ($slug === null) {
                     $candidateSlug = StringTools::generateRandomString(8, StringTools::CHARSET_ALPHANUMERIC_CI);
@@ -81,8 +97,8 @@ final class Album extends BaseRouteProvider
                     }
                 }
 
-                $sql = 'INSERT INTO `albums` (`slug`, `name`) VALUE (?, ?)';
-                if (!$dbConn->exec($sql, $slug, $validator['name'])) {
+                $sql = 'INSERT INTO `albums` (`slug`, `name`, `artist_id`) VALUE (?, ?, ?)';
+                if (!$dbConn->exec($sql, $slug, $validator['name'], $artistId)) {
                     throw new Exception('A database error has occured');
                 }
                 $albumId = $dbConn->lastInsertId();

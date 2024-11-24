@@ -25,3 +25,17 @@ CREATE TABLE `album_instances` (
 
 ALTER TABLE `album_instances`
     ADD FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- [VERSION: 3]
+
+CREATE TABLE `artists` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(255) NOT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB;
+
+ALTER TABLE `albums`
+    ADD `artist_id` INT UNSIGNED NULL AFTER `name`;
+
+ALTER TABLE `albums` 
+    ADD FOREIGN KEY (`artist_id`) REFERENCES `artists`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

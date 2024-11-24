@@ -15,9 +15,13 @@
 		<hr/>
 		<div id="cover">
 			<img width="256"/>
-			<p><a href="#">Download Covers</a></p>
+			<p>
+				<a href="#">Download Covers</a>
+			</p>
 			<hr/>
 		</div>
+		<p>Artist:
+			{% dv_field validator 'artist_name' %}</p>
 		<p>Deezer:
 			{% dv_field validator 'deezer_platform_id' %}
 			<span id="deezer_url"></span>

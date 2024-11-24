@@ -36,9 +36,9 @@ function onSuggestionsLoaded(event) {
       containingList.append(
         `<li ${platformIds.join(" ")} data-title="${
           entry.title
-        }" data-cover-url="${entry.cover}">${entry.title} - ${
-          entry.artist
-        }</li>`
+        }" data-cover-url="${entry.cover}" data-artist="${entry.artist}">${
+          entry.title
+        } - ${entry.artist}</li>`
       );
       containingList.find("li:last").on("click", onSuggestionClicked);
     }
@@ -54,12 +54,18 @@ function onSuggestionClicked() {
   updateDeezerUrl(deezerId);
   clearSuggestions();
 
+  $("#artist_name").val($(this).data("artist"));
+
   $("#cover img").attr("src", $(this).data("cover-url"));
   $("#cover").show();
 }
 
 function updateDeezerUrl(id) {
-  $("#deezer_url").text(`https://www.deezer.com/fr/album/${id}`);
+  if (id == "") {
+    $("#deezer_url").hide();
+  } else {
+    $("#deezer_url").text(`https://www.deezer.com/fr/album/${id}`);
+  }
 }
 
 function clearSuggestions() {
