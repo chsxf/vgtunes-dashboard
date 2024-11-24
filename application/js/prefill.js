@@ -72,6 +72,7 @@ function setupCoverInteractions() {
     window.open($(this).attr("src"), "_blank");
   });
   $("#cover a").on("click", function (e) {
+    e.preventDefault();
     e.stopPropagation();
     let imgUrl = $("#cover img").attr("src");
     let processingUrl = `/ImageProcessing/covers?url=${encodeURI(imgUrl)}`;
