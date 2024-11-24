@@ -15,7 +15,7 @@ final class JsonGenerator extends BaseRouteProvider
         $dbService = $this->serviceProvider->getDatabaseService();
         $dbConn = $dbService->open();
 
-        $sql = "SELECT `id`, `slug`, `name` FROM `albums` ORDER BY `name`";
+        $sql = "SELECT * FROM `albums` ORDER BY `name`";
         $albums = $dbConn->get($sql, \PDO::FETCH_ASSOC);
 
         $sql = "SELECT * FROM `album_instances`";
