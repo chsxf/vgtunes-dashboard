@@ -5,4 +5,4 @@ services:
       - ./:/var/www/html
       - /var/log/apache2/app:/var/log/apache2/
     ports:
-      - 8080:80
+      - 8088:80
