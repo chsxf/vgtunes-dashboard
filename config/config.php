@@ -14,7 +14,7 @@ return new Config([
     ],
 
     'request' => [
-        'default_route' => 'Home/show'
+        'default_route' => 'Home/signIn'
     ],
 
     'response' => [

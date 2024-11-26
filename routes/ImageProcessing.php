@@ -1,17 +1,13 @@
 <?php
 
-use chsxf\MFX\Attributes\AnonymousRoute;
 use chsxf\MFX\Attributes\Route;
-use chsxf\MFX\CoreManager;
 use chsxf\MFX\HttpStatusCodes;
 use chsxf\MFX\RequestResult;
 use chsxf\MFX\Routers\BaseRouteProvider;
-use chsxf\MFX\Routers\IRouteProvider;
-use ZipStream\ZipStream;
 
 final class ImageProcessing extends BaseRouteProvider
 {
-    #[Route, AnonymousRoute]
+    #[Route]
     public function covers(): RequestResult
     {
         try {

@@ -1,6 +1,5 @@
 <?php
 
-use chsxf\MFX\Attributes\AnonymousRoute;
 use chsxf\MFX\Attributes\Route;
 use chsxf\MFX\RequestResult;
 use chsxf\MFX\Routers\IRouteProvider;
@@ -9,7 +8,7 @@ final class Suggestions implements IRouteProvider
 {
     private const DEEZER_API_TEMPLATE_URL = "https://api.deezer.com/search/album?q={ALBUM_NAME}";
 
-    #[Route, AnonymousRoute]
+    #[Route]
     public static function album(array $params): RequestResult
     {
         $albumSearchQuery = trim($params[0] ?? '');

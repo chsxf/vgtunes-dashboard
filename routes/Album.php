@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use chsxf\MFX\Attributes\AnonymousRoute;
 use chsxf\MFX\Attributes\RequiredRequestMethod;
 use chsxf\MFX\Attributes\Route;
 use chsxf\MFX\DataValidator;
@@ -28,7 +27,7 @@ final class Album extends BaseRouteProvider
     private const SPOTIFY = 'spotify';
     private const SPOTIFY_PLATFORM_ID = self::SPOTIFY . self::PLATFORM_ID_SUFFIX;
 
-    #[Route, AnonymousRoute, RequiredRequestMethod(RequestMethod::GET), RequiredRequestMethod(RequestMethod::POST)]
+    #[Route, RequiredRequestMethod(RequestMethod::GET), RequiredRequestMethod(RequestMethod::POST)]
     public function add(): RequestResult
     {
         $this->serviceProvider->getScriptService()->add('/js/prefill.js');
