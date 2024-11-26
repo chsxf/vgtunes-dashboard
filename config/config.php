@@ -37,5 +37,10 @@ return new Config([
                 AppDatabaseUpdater::class
             ]
         ]
+    ],
+
+    'spotify' => [
+        'client_id' => $secrets['SPOTIFY_CLIENT_ID'],
+        'client_secret' => $secrets['SPOTIFY_CLIENT_SECRET']
     ]
 ]);

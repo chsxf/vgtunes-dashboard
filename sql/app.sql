@@ -46,3 +46,15 @@ ALTER TABLE `albums`
     DROP FOREIGN KEY `albums_ibfk_1`;
 ALTER TABLE `albums`
     ADD CONSTRAINT `albums_ibfk_1` FOREIGN KEY (`artist_id`) REFERENCES `artists`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- [VERSION: 5]
+
+CREATE TABLE `spotify_access_tokens` (
+    `user_id` INT UNSIGNED NOT NULL,
+    `access_token` TINYTEXT NOT NULL,
+    `expires_at` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`user_id`)
+) ENGINE = InnoDB; 
+
+ALTER TABLE `spotify_access_tokens`
+    ADD FOREIGN KEY (`user_id`) REFERENCES `mfx_users`(`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;

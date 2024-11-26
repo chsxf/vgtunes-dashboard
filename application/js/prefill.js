@@ -1,8 +1,12 @@
 const apiURL = "/Suggestions/album/{ALBUM_NAME}";
+const spotifyURL = "/Suggestions/querySpotify?title={TITLE}&artist={ARTIST}";
 
 let suggestionsTimeout = null;
 let suggestionsRequest = new XMLHttpRequest();
 suggestionsRequest.addEventListener("load", onSuggestionsLoaded);
+
+let spotifyRequest = new XMLHttpRequest();
+spotifyRequest.addEventListener("load", onSpotifyAnswerReceived);
 
 function setupSuggestionTimeout() {
   if (suggestionsTimeout !== null) {
@@ -19,7 +23,7 @@ function requestSuggestions() {
   suggestionsRequest.send();
 }
 
-function onSuggestionsLoaded(event) {
+function onSuggestionsLoaded() {
   clearSuggestions();
 
   let responseJson;
@@ -47,17 +51,48 @@ function onSuggestionsLoaded(event) {
 }
 
 function onSuggestionClicked() {
-  $("#name").val($(this).data("title"));
+  const title = $(this).data("title");
+  const artist = $(this).data("artist");
+
+  $("#name").val(title);
 
   const deezerId = $(this).data("deezer-id");
   $("#deezer_platform_id").val(deezerId);
   updateDeezerUrl(deezerId);
   clearSuggestions();
 
-  $("#artist_name").val($(this).data("artist"));
+  $("#artist_name").val(artist);
 
   $("#cover img").attr("src", $(this).data("cover-url"));
   $("#cover").show();
+
+  lookForMatchOnSpotify(title, artist);
+}
+
+function lookForMatchOnSpotify(title, artist) {
+  let url = spotifyURL.replace("{TITLE}", title).replace("{ARTIST}", artist);
+  spotifyRequest.open("GET", url);
+  spotifyRequest.send();
+
+  $("#spotify_log").text("Querying Spotify...");
+}
+
+function onSpotifyAnswerReceived() {
+  let responseJson;
+  if (spotifyRequest.responseType == "json") {
+    responseJson = spotifyRequest.response;
+  } else {
+    responseJson = JSON.parse(spotifyRequest.responseText);
+  }
+
+  if (responseJson.exactMatch) {
+    $("#spotify_platform_id").val(responseJson.id);
+    $("#spotify_log").text("Exact match found!");
+  } else {
+    $("#spotify_log").text(
+      `${repsonseJson.candidates.length} candidates found`
+    );
+  }
 }
 
 function updateDeezerUrl(id) {
