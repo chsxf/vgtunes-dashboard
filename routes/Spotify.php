@@ -73,7 +73,7 @@ final class Spotify extends BaseRouteProvider
             $candidate = ['id' => $album['id'], 'title' => $album['name'], 'artist' => $album['artists'][0]['name']];
             if ($candidate['title'] == $title && $candidate['artist'] == $artist) {
                 $returnValue['exactMatch'] = true;
-                $returnValue['id'] = $candidate['id'];
+                $returnValue['candidate'] = $candidate;
                 break;
             }
             $candidates[] = $candidate;

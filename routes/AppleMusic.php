@@ -76,7 +76,7 @@ final class AppleMusic extends BaseRouteProvider
                 $candidate = ['id' => $album['id'], 'title' => $album['attributes']['name'], 'artist' => $album['attributes']['artistName']];
                 if ($candidate['title'] == $title && stripos($candidate['artist'], $artist) !== false) {
                     $returnValue['exactMatch'] = true;
-                    $returnValue['id'] = $candidate['id'];
+                    $returnValue['candidate'] = $candidate;
                     break;
                 }
                 $candidates[] = $candidate;

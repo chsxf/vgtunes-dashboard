@@ -91,8 +91,10 @@ function onSpotifyAnswerReceived() {
   }
 
   if (responseJson.exactMatch) {
-    $("#spotify_platform_id").val(responseJson.id);
-    $("#spotify_log").text("Exact match found!");
+    $("#spotify_platform_id").val(responseJson.candidate.id);
+    $("#spotify_log").text(
+      `Exact match found! [${responseJson.candidate.title} - ${responseJson.candidate.artist}`
+    );
   } else {
     $("#spotify_log").text(
       `${repsonseJson.candidates.length} candidates found`
@@ -117,8 +119,10 @@ function onAppleMusicAnswerReceived() {
   }
 
   if (responseJson.exactMatch) {
-    $("#apple_music_platform_id").val(responseJson.id);
-    $("#apple_music_log").text("Exact match found!");
+    $("#apple_music_platform_id").val(responseJson.candidate.id);
+    $("#apple_music_log").text(
+      `Exact match found! [${responseJson.candidate.title} - ${responseJson.candidate.artist}`
+    );
   } else {
     $("#apple_music_log").text(
       `${repsonseJson.candidates.length} candidates found`
