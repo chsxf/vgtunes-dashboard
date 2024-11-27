@@ -1,5 +1,6 @@
 const apiURL = "/Suggestions/album/{ALBUM_NAME}";
-const spotifyURL = "/Suggestions/querySpotify?title={TITLE}&artist={ARTIST}";
+const spotifyURL = "/Spotify/query?title={TITLE}&artist={ARTIST}";
+const appleMusicURL = "/AppleMusic/query?title={TITLE}&artist={ARTIST}";
 
 let suggestionsTimeout = null;
 let suggestionsRequest = new XMLHttpRequest();
@@ -7,6 +8,9 @@ suggestionsRequest.addEventListener("load", onSuggestionsLoaded);
 
 let spotifyRequest = new XMLHttpRequest();
 spotifyRequest.addEventListener("load", onSpotifyAnswerReceived);
+
+let appleMusicRequest = new XMLHttpRequest();
+appleMusicRequest.addEventListener("load", onAppleMusicAnswerReceived);
 
 function setupSuggestionTimeout() {
   if (suggestionsTimeout !== null) {
@@ -67,6 +71,7 @@ function onSuggestionClicked() {
   $("#cover").show();
 
   lookForMatchOnSpotify(title, artist);
+  lookForMatchOnAppleMusic(title, artist);
 }
 
 function lookForMatchOnSpotify(title, artist) {
@@ -90,6 +95,32 @@ function onSpotifyAnswerReceived() {
     $("#spotify_log").text("Exact match found!");
   } else {
     $("#spotify_log").text(
+      `${repsonseJson.candidates.length} candidates found`
+    );
+  }
+}
+
+function lookForMatchOnAppleMusic(title, artist) {
+  let url = appleMusicURL.replace("{TITLE}", title).replace("{ARTIST}", artist);
+  appleMusicRequest.open("GET", url);
+  appleMusicRequest.send();
+
+  $("#apple_music_log").text("Querying Apple Music...");
+}
+
+function onAppleMusicAnswerReceived() {
+  let responseJson;
+  if (spotifyRequest.responseType == "json") {
+    responseJson = appleMusicRequest.response;
+  } else {
+    responseJson = JSON.parse(appleMusicRequest.responseText);
+  }
+
+  if (responseJson.exactMatch) {
+    $("#apple_music_platform_id").val(responseJson.id);
+    $("#apple_music_log").text("Exact match found!");
+  } else {
+    $("#apple_music_log").text(
       `${repsonseJson.candidates.length} candidates found`
     );
   }

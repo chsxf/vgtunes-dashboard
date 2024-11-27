@@ -3,7 +3,8 @@
   "description": "A template package for bootstraping MFX projects",
   "homepage": "https://github.com/chsxf/mfx-project-template",
   "require": {
-    "chsxf/mfx": "^2"
+    "chsxf/mfx": "^2",
+    "web-token/jwt-library": "^4.0"
   },
   "autoload": {
     "psr-4": {

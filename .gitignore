@@ -3,3 +3,4 @@ composer.lock
 tmp
 secrets.php
 .DS_Store
+*.p8
