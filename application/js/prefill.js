@@ -101,7 +101,9 @@ function onSpotifyAnswerReceived() {
 }
 
 function lookForMatchOnAppleMusic(title, artist) {
-  let url = appleMusicURL.replace("{TITLE}", title).replace("{ARTIST}", artist);
+  let url = appleMusicURL
+    .replace("{TITLE}", cleanupTitle(title))
+    .replace("{ARTIST}", artist);
   appleMusicRequest.open("GET", url);
   appleMusicRequest.send();
 
@@ -150,6 +152,11 @@ function setupCoverInteractions() {
     let processingUrl = `/ImageProcessing/covers?url=${encodeURI(imgUrl)}`;
     window.open(processingUrl, "_blank");
   });
+}
+
+function cleanupTitle(title) {
+  const re = /\([^)]+\)/;
+  return title.replace(re, "").trim();
 }
 
 function setupPrefill() {

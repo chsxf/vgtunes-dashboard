@@ -53,14 +53,16 @@ final class AppleMusic extends BaseRouteProvider
             $candidates = [];
 
             $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
-            foreach ($decodedJson['results']['albums']['data'] as $album) {
-                $candidate = ['id' => $album['id'], 'title' => $album['attributes']['name'], 'artist' => $album['attributes']['artistName']];
-                if ($candidate['title'] == $validator['title'] && stripos($candidate['artist'], $validator['artist']) !== false) {
-                    $requestResultData['exactMatch'] = true;
-                    $requestResultData['id'] = $candidate['id'];
-                    break;
+            if (!empty($decodedJson['results']) && !empty($decodedJson['results']['albums'])) {
+                foreach ($decodedJson['results']['albums']['data'] as $album) {
+                    $candidate = ['id' => $album['id'], 'title' => $album['attributes']['name'], 'artist' => $album['attributes']['artistName']];
+                    if ($candidate['title'] == $validator['title'] && stripos($candidate['artist'], $validator['artist']) !== false) {
+                        $requestResultData['exactMatch'] = true;
+                        $requestResultData['id'] = $candidate['id'];
+                        break;
+                    }
+                    $candidates[] = $candidate;
                 }
-                $candidates[] = $candidate;
             }
 
             if (empty($requestResultData['exactMatch'])) {
