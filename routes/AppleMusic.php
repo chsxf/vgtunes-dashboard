@@ -30,49 +30,64 @@ final class AppleMusic extends BaseRouteProvider
                 throw new Exception('Invalid parameters');
             }
 
-            $query = http_build_query([
-                'term' => $validator['title'],
-                'limit' => 25,
-                'types' => 'albums'
-            ]);
-
-            $url = "https://api.music.apple.com/v1/catalog/us/search?{$query}";
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER => ["Authorization: Bearer {$jsonWebToken}"]
-            ]);
-            $result = curl_exec($ch);
-            if ($result === false) {
-                $error = curl_error($ch);
-                curl_close($ch);
-                throw new Exception($error);
-            }
-            curl_close($ch);
-
-            $candidates = [];
-
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
-            if (!empty($decodedJson['results']) && !empty($decodedJson['results']['albums'])) {
-                foreach ($decodedJson['results']['albums']['data'] as $album) {
-                    $candidate = ['id' => $album['id'], 'title' => $album['attributes']['name'], 'artist' => $album['attributes']['artistName']];
-                    if ($candidate['title'] == $validator['title'] && stripos($candidate['artist'], $validator['artist']) !== false) {
-                        $requestResultData['exactMatch'] = true;
-                        $requestResultData['id'] = $candidate['id'];
-                        break;
-                    }
-                    $candidates[] = $candidate;
-                }
+            $queryResult = self::queryAPI($jsonWebToken, $validator['title'], $validator['artist']);
+            if ($queryResult['exactMatch'] === false && empty($queryResult['candidates'])) {
+                $cleanedTitle = trim(preg_replace('/\([^)]+\)/', '', $validator['title']));
+                $queryResult = self::queryAPI($jsonWebToken, $cleanedTitle, $validator['artist']);
             }
 
-            if (empty($requestResultData['exactMatch'])) {
-                $requestResultData['exactMatch'] = false;
-                $requestResultData['candidates'] = $candidates;
-            }
+            $requestResultData = array_merge($requestResultData, $queryResult);
         } catch (Exception $e) {
             trigger_error($e->getMessage(), E_USER_ERROR);
         }
 
         return RequestResult::buildJSONRequestResult($requestResultData, statusCode: $statusCode);
+    }
+
+    private static function queryAPI(string $jsonWebToken, string $title, string $artist): array
+    {
+        $query = http_build_query([
+            'term' => $title,
+            'limit' => 25,
+            'types' => 'albums'
+        ]);
+
+        $url = "https://api.music.apple.com/v1/catalog/us/search?{$query}";
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ["Authorization: Bearer {$jsonWebToken}"]
+        ]);
+        $result = curl_exec($ch);
+        if ($result === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new Exception($error);
+        }
+        curl_close($ch);
+
+        $returnValue = [];
+
+        $candidates = [];
+
+        $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+        if (!empty($decodedJson['results']) && !empty($decodedJson['results']['albums'])) {
+            foreach ($decodedJson['results']['albums']['data'] as $album) {
+                $candidate = ['id' => $album['id'], 'title' => $album['attributes']['name'], 'artist' => $album['attributes']['artistName']];
+                if ($candidate['title'] == $title && stripos($candidate['artist'], $artist) !== false) {
+                    $returnValue['exactMatch'] = true;
+                    $returnValue['id'] = $candidate['id'];
+                    break;
+                }
+                $candidates[] = $candidate;
+            }
+        }
+
+        if (empty($returnValue['exactMatch'])) {
+            $returnValue['exactMatch'] = false;
+            $returnValue['candidates'] = $candidates;
+        }
+
+        return $returnValue;
     }
 }

@@ -2,7 +2,6 @@
 
 use chsxf\MFX\Attributes\RequiredRequestMethod;
 use chsxf\MFX\Attributes\Route;
-use chsxf\MFX\DatabaseConnectionInstance;
 use chsxf\MFX\DataValidator;
 use chsxf\MFX\DataValidator\FieldType;
 use chsxf\MFX\HttpStatusCodes;
@@ -22,66 +21,76 @@ final class Spotify extends BaseRouteProvider
         $requestResultData = [];
         $statusCode = HttpStatusCodes::ok;
 
-        $dbConn = null;
-
         try {
             if (!$validator->validate($_GET)) {
                 throw new Exception('Invalid parameters');
             }
 
-            $dbConn = $this->serviceProvider->getDatabaseService()->open();
-            $accessToken = $this->getAccessToken($dbConn);
+            $accessToken = $this->getAccessToken();
 
-            $query = http_build_query([
-                'q' => $validator['title'],
-                'type' => 'album',
-                'market' => 'US',
-                'limit' => 50
-            ]);
-            $url = "https://api.spotify.com/v1/search?{$query}";
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER => ["Authorization: Bearer {$accessToken}"]
-            ]);
-            $result = curl_exec($ch);
-            if ($result === false) {
-                $error = curl_error($ch);
-                curl_close($ch);
-                throw new Exception($error);
-            }
-            curl_close($ch);
-
-            $candidates = [];
-
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
-            foreach ($decodedJson['albums']['items'] as $album) {
-                $candidate = ['id' => $album['id'], 'title' => $album['name'], 'artist' => $album['artists'][0]['name']];
-                if ($candidate['title'] == $validator['title'] && $candidate['artist'] == $validator['artist']) {
-                    $requestResultData['exactMatch'] = true;
-                    $requestResultData['id'] = $candidate['id'];
-                    break;
-                }
-                $candidates[] = $candidate;
+            $queryResult = self::queryAPI($accessToken, $validator['title'], $validator['artist']);
+            if ($queryResult['exactMatch'] === false && empty($queryResult['candidates'])) {
+                $cleanedTitle = trim(preg_replace('/\([^)]+\)/', '', $validator['title']));
+                $queryResult = self::queryAPI($accessToken, $cleanedTitle, $validator['artists']);
             }
 
-            if (empty($requestResultData['exactMatch'])) {
-                $requestResultData['exactMatch'] = false;
-                $requestResultData['candidates'] = $candidates;
-            }
+            $requestResultData = array_merge($requestResultData, $queryResult);
         } catch (Exception $e) {
-            if ($dbConn !== null) {
-                $this->serviceProvider->getDatabaseService()->close($dbConn);
-            }
-
             trigger_error($e->getMessage(), E_USER_ERROR);
         }
 
         return RequestResult::buildJSONRequestResult($requestResultData, statusCode: $statusCode);
     }
 
-    private function getAccessToken(DatabaseConnectionInstance $dbConn): string
+    private static function queryAPI(string $accessToken, string $title, string $artist): array
     {
+        $query = http_build_query([
+            'q' => $title,
+            'type' => 'album',
+            'market' => 'US',
+            'limit' => 50
+        ]);
+        $url = "https://api.spotify.com/v1/search?{$query}";
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ["Authorization: Bearer {$accessToken}"]
+        ]);
+        $result = curl_exec($ch);
+        if ($result === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new Exception($error);
+        }
+        curl_close($ch);
+
+        $returnValue = [];
+
+        $candidates = [];
+
+        $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+        foreach ($decodedJson['albums']['items'] as $album) {
+            $candidate = ['id' => $album['id'], 'title' => $album['name'], 'artist' => $album['artists'][0]['name']];
+            if ($candidate['title'] == $title && $candidate['artist'] == $artist) {
+                $returnValue['exactMatch'] = true;
+                $returnValue['id'] = $candidate['id'];
+                break;
+            }
+            $candidates[] = $candidate;
+        }
+
+        if (empty($returnValue['exactMatch'])) {
+            $returnValue['exactMatch'] = false;
+            $returnValue['candidates'] = $candidates;
+        }
+
+        return $returnValue;
+    }
+
+    private function getAccessToken(): string
+    {
+        $dbService = $this->serviceProvider->getDatabaseService();
+        $dbConn = $dbService->open();
         $dbConn->beginTransaction();
 
         $user = $this->serviceProvider->getAuthenticationService()->getCurrentAuthenticatedUser();
@@ -89,6 +98,7 @@ final class Spotify extends BaseRouteProvider
         $sql = "SELECT `access_token` FROM `spotify_access_tokens` WHERE `user_id` = ? AND `expires_at` > CURRENT_TIMESTAMP()";
         if (($accessToken = $dbConn->getValue($sql, $user->getId())) !== false) {
             $dbConn->rollBack();
+            $dbService->close($dbConn);
             return $accessToken;
         }
 
@@ -97,6 +107,7 @@ final class Spotify extends BaseRouteProvider
             $newAccessToken = SpotifyHelpers::fetchAccessToken($config->getValue('spotify.client_id'), $config->getValue('spotify.client_secret'));
         } catch (Exception $e) {
             $dbConn->rollBack();
+            $dbService->close($dbConn);
             throw new Exception("Issue generating new Spotify access token", previous: $e);
         }
 
@@ -104,10 +115,12 @@ final class Spotify extends BaseRouteProvider
                     ON DUPLICATE KEY UPDATE `access_token` = ?, `expires_at` = DATE_ADD(CURRENT_TIMESTAMP(), INTERVAL 1 HOUR)";
         if ($dbConn->exec($sql, $user->getId(), $newAccessToken, $newAccessToken) === false) {
             $dbConn->rollBack();
+            $dbService->close($dbConn);
             throw new Exception('Unable to update Spotify access token');
         }
 
         $dbConn->commit();
+        $dbService->close($dbConn);
         return $newAccessToken;
     }
 }
