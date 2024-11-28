@@ -66,7 +66,7 @@ class Home extends BaseRouteProvider
         $dbService = $this->serviceProvider->getDatabaseService();
         $dbConn = $dbService->open();
 
-        $sql = "SELECT `slug`, `name` FROM `albums` ORDER BY `created_at` DESC LIMIT 10";
+        $sql = "SELECT `slug`, `title` FROM `albums` ORDER BY `created_at` DESC LIMIT 10";
         $albums = $dbConn->getPairs($sql);
 
         return new RequestResult(null, [

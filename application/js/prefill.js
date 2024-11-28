@@ -1,4 +1,4 @@
-const apiURL = "/Suggestions/album/{ALBUM_NAME}";
+const apiURL = "/Suggestions/album/{ALBUM_TITLE}";
 const spotifyURL = "/Spotify/query?title={TITLE}&artist={ARTIST}";
 const appleMusicURL = "/AppleMusic/query?title={TITLE}&artist={ARTIST}";
 
@@ -21,8 +21,8 @@ function setupSuggestionTimeout() {
 }
 
 function requestSuggestions() {
-  let albumName = `"${$("#name").val()}"`;
-  let url = apiURL.replace("{ALBUM_NAME}", encodeURI(albumName));
+  let albumTitle = `"${$("#title").val()}"`;
+  let url = apiURL.replace("{ALBUM_TITLE}", encodeURI(albumTitle));
   suggestionsRequest.open("GET", url);
   suggestionsRequest.send();
 }
@@ -58,7 +58,7 @@ function onSuggestionClicked() {
   const title = $(this).data("title");
   const artist = $(this).data("artist");
 
-  $("#name").val(title);
+  $("#title").val(title);
 
   const deezerId = $(this).data("deezer-id");
   $("#deezer_platform_id").val(deezerId);
@@ -157,7 +157,7 @@ function setupCoverInteractions() {
 }
 
 function setupPrefill() {
-  $("#name").on("input", function () {
+  $("#title").on("input", function () {
     setupSuggestionTimeout();
   });
 

@@ -18,7 +18,7 @@ final class Album extends BaseRouteProvider
     private const PLATFORM_ID_MAX_LENGTH = 32;
     private const NAMES_MAX_LENGTH = 256;
 
-    private const NAME = 'name';
+    private const TITLE = 'title';
     private const ARTIST_NAME = 'artist_name';
     private const APPLE_MUSIC = 'apple_music';
     private const APPLE_MUSIC_PLATFORM_ID = self::APPLE_MUSIC . self::PLATFORM_ID_SUFFIX;
@@ -35,7 +35,7 @@ final class Album extends BaseRouteProvider
         $namesExtraArguments = ['size' => strval(self::NAMES_MAX_LENGTH), 'maxlength' => strval(self::NAMES_MAX_LENGTH)];
 
         $validator = new DataValidator();
-        $validator->createField(self::NAME, FieldType::TEXT, extras: $namesExtraArguments)
+        $validator->createField(self::TITLE, FieldType::TEXT, extras: $namesExtraArguments)
             ->addFilter(RegExp::stringLength(max: self::NAMES_MAX_LENGTH));
         $validator->createField(self::ARTIST_NAME, FieldType::TEXT, extras: $namesExtraArguments)
             ->addFilter(RegExp::stringLength(max: self::NAMES_MAX_LENGTH));
@@ -96,8 +96,8 @@ final class Album extends BaseRouteProvider
                     }
                 }
 
-                $sql = 'INSERT INTO `albums` (`slug`, `name`, `artist_id`) VALUE (?, ?, ?)';
-                if (!$dbConn->exec($sql, $slug, $validator['name'], $artistId)) {
+                $sql = 'INSERT INTO `albums` (`slug`, `title`, `artist_id`) VALUE (?, ?, ?)';
+                if (!$dbConn->exec($sql, $slug, $validator[self::TITLE], $artistId)) {
                     throw new Exception('A database error has occured');
                 }
                 $albumId = $dbConn->lastInsertId();

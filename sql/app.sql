@@ -58,3 +58,8 @@ CREATE TABLE `spotify_access_tokens` (
 
 ALTER TABLE `spotify_access_tokens`
     ADD FOREIGN KEY (`user_id`) REFERENCES `mfx_users`(`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- [VERSION: 6]
+
+ALTER TABLE `albums`
+    CHANGE `name` `title` TINYTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;
