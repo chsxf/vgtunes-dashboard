@@ -97,7 +97,7 @@ function onSpotifyAnswerReceived() {
     );
   } else {
     $("#spotify_log").text(
-      `${repsonseJson.candidates.length} candidates found`
+      `${responseJson.candidates.length} candidates found`
     );
   }
 }
@@ -125,7 +125,7 @@ function onAppleMusicAnswerReceived() {
     );
   } else {
     $("#apple_music_log").text(
-      `${repsonseJson.candidates.length} candidates found`
+      `${responseJson.candidates.length} candidates found`
     );
   }
 }
