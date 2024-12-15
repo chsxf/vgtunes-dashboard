@@ -16,10 +16,7 @@ final class ImageProcessing extends BaseRouteProvider
                 throw new Exception('An image URL must be provided');
             }
 
-            $srcImgData = file_get_contents($url);
-            if (($srcImage = imagecreatefromstring($srcImgData)) === false) {
-                throw new Exception("Unable to read source image");
-            }
+            $covers = CoverProcessor::getProcessedCovers($url);
 
             $zipTempFile = tempnam(sys_get_temp_dir(), 'cov');
             $zipArchive = new ZipArchive();
@@ -27,16 +24,9 @@ final class ImageProcessing extends BaseRouteProvider
                 throw new Exception("Unable to open the archive");
             }
 
-            $zipArchive->addFromString('cover_1000.jpg', self::getJPEGAsString($srcImage));
-
-            // Reductions
-            $reductions = [500, 250, 100];
-            foreach ($reductions as $reduction) {
-                $reducedImage = imagescale($srcImage, $reduction, mode: IMG_BICUBIC);
-                $zipArchive->addFromString("cover_{$reduction}.jpg", self::getJPEGAsString($reducedImage));
-                imagedestroy($reducedImage);
+            foreach ($covers as $size => $image) {
+                $zipArchive->addFromString("cover_{$size}.jpg", $image);
             }
-            imagedestroy($srcImage);
 
             $zipArchive->close();
 
@@ -48,12 +38,5 @@ final class ImageProcessing extends BaseRouteProvider
             trigger_error($e->getMessage(), E_USER_ERROR);
             return RequestResult::buildJSONRequestResult([], statusCode: HttpStatusCodes::internalServerError);
         }
-    }
-
-    private static function getJPEGAsString(GdImage $image): string
-    {
-        ob_start();
-        imagejpeg($image, null, 90);
-        return ob_get_clean();
     }
 }

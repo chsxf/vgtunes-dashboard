@@ -20,6 +20,7 @@ final class Album extends BaseRouteProvider
 
     private const TITLE = 'title';
     private const ARTIST_NAME = 'artist_name';
+    private const COVER_URL = 'cover_url';
     private const APPLE_MUSIC = 'apple_music';
     private const APPLE_MUSIC_PLATFORM_ID = self::APPLE_MUSIC . self::PLATFORM_ID_SUFFIX;
     private const DEEZER = 'deezer';
@@ -39,6 +40,7 @@ final class Album extends BaseRouteProvider
             ->addFilter(RegExp::stringLength(max: self::NAMES_MAX_LENGTH));
         $validator->createField(self::ARTIST_NAME, FieldType::TEXT, extras: $namesExtraArguments)
             ->addFilter(RegExp::stringLength(max: self::NAMES_MAX_LENGTH));
+        $validator->createField(self::COVER_URL, FieldType::HIDDEN);
 
         $platformIdExtraArguments = ['size' => strval(self::PLATFORM_ID_MAX_LENGTH), 'maxlength' => strval(self::PLATFORM_ID_MAX_LENGTH)];
 
@@ -109,6 +111,20 @@ final class Album extends BaseRouteProvider
                         if (!$dbConn->exec($sql, $albumId, $platform, $platformIdValue)) {
                             throw new Exception('A database error has occured');
                         }
+                    }
+                }
+
+
+                $coverSizes = CoverProcessor::getProcessedCovers($validator[self::COVER_URL]);
+                $outputPath = $this->serviceProvider->getConfigService()->getValue('covers.output_path');
+                $outputPath .= "/{$slug}";
+                if (mkdir($outputPath, 0770, true) === false) {
+                    throw new Exception('Unable to create the covers folder');
+                }
+                foreach ($coverSizes as $size => $coverImage) {
+                    $filePath = "{$outputPath}/cover_{$size}.jpg";
+                    if (file_put_contents($filePath, $coverImage) === false) {
+                        throw new Exception('Unable to write cover file');
                     }
                 }
 

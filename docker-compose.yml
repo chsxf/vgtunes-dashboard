@@ -2,6 +2,7 @@ services:
   php:
     build: .
     volumes:
+      - ../vgtunes-images/:/var/www/vgtunes-images/
       - ./:/var/www/html
       - /var/log/apache2/app:/var/log/apache2/
     ports:

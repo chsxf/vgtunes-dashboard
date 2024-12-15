@@ -65,9 +65,12 @@ function onSuggestionClicked() {
   updateDeezerUrl(deezerId);
   clearSuggestions();
 
-  $("#artist_name").val(artist);
+  const coverUrl = $(this).data("cover-url");
 
-  $("#cover img").attr("src", $(this).data("cover-url"));
+  $("#artist_name").val(artist);
+  $("#cover_url").val(coverUrl);
+
+  $("#cover img").attr("src", coverUrl);
   $("#cover").show();
 
   lookForMatchOnSpotify(title, artist);

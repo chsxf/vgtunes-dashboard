@@ -48,5 +48,9 @@ return new Config([
         'team_id' => $secrets['APPLE_TEAM_ID'],
         'key_id' => $secrets['APPLE_MUSIC_KEY_ID'],
         'key_path' => __DIR__ . "/AppleMusic_AuthKey_{$secrets['APPLE_MUSIC_KEY_ID']}.p8"
+    ],
+
+    'covers' => [
+        'output_path' => $secrets['COVERS_PATH']
     ]
 ]);

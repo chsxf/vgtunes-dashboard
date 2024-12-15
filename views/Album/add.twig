@@ -6,6 +6,8 @@
 	<h1>Add New Album</h1>
 
 	<form method="post" action="/Album/add">
+		{% dv_field validator 'cover_url' %}
+
 		<p>Name:
 			{% dv_field validator 'title' %}</p>
 		<div id="suggestions">
