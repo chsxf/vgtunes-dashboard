@@ -4,7 +4,8 @@
   "homepage": "https://github.com/chsxf/mfx-project-template",
   "require": {
     "chsxf/mfx": "^2",
-    "web-token/jwt-library": "^4.0"
+    "web-token/jwt-library": "^4.0",
+    "twbs/bootstrap": "^5.3"
   },
   "autoload": {
     "psr-4": {
@@ -20,5 +21,11 @@
       "email": "chsxf.pro@gmail.com"
     }
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "post-update-cmd": [
+      "rm -Rf application/bootstrap",
+      "cp -R vendor/twbs/bootstrap/dist application/bootstrap"
+    ]
+  }
 }
