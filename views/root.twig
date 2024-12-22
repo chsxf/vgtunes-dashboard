@@ -1,0 +1,19 @@
+{% extends '@mfx/HTML.twig' %}
+
+{% block body %}
+	{{ parent() }}
+
+	<main class="d-flex flex-nowrap bg-dark" data-bs-theme="dark">
+		<div id="main-sidebar" class="d-flex flex-column flex-shrink-0 p-3 bg-success text-bg-dark bg-opacity-10 border-end border-success border-opacity-50" style="width: 200px">
+			{% include 'main-sidebar.twig' %}
+		</div>
+
+		<div class="d-flex flex-column flex-shrink-0 p-3 text-bg-dark" style="width: calc(100vw - 200px)">
+			<h1>
+				{% block page_title %}{% endblock %}
+			</h1>
+
+			{% block page_content %}{% endblock %}
+		</div>
+	</main>
+{% endblock %}

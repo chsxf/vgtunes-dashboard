@@ -1,0 +1,28 @@
+<h1 class="logo">VGTunes</h1>
+<hr/>
+{% if mfx_current_user %}
+	<ul class="nav nav-pills flex-column mb-auto">
+		<li class="nav-item">
+			<a href="/Albums/list" class="nav-link text-white">
+				<i class="bi bi-disc me-2"></i>
+				Albums</a>
+		</li>
+
+		<li class="nav-item">
+			<a href="/JsonGenerator/generate" class="nav-link text-white">
+				<i class="bi bi-download me-2"></i>
+				Export JSON
+			</a>
+		</li>
+	</ul>
+
+	<hr/>
+	<div class="dropdown">
+		<a href="#" class="d-flex align-items-center text-decoration-none text-white dropdown-toggle" data-bs-toggle="dropdown">{{ mfx_current_user.user_name }}</a>
+		<ul class="dropdown-menu text-small shadow">
+			<li>
+				<a class="dropdown-item" href="/Home/signOut">Sign Out</a>
+			</li>
+		</ul>
+	</div>
+{% endif %}

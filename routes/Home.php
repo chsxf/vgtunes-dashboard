@@ -24,9 +24,11 @@ class Home extends BaseRouteProvider
             return RequestResult::buildRedirectRequestResult('/Home/show');
         }
 
+        $extras = ['class' => 'form-control'];
+
         $validator = new DataValidator();
-        $validator->createField(self::USERNAME_FIELD, FieldType::TEXT);
-        $validator->createField(self::PASSWORD_FIELD, FieldType::PASSWORD);
+        $validator->createField(self::USERNAME_FIELD, FieldType::TEXT, extras: $extras);
+        $validator->createField(self::PASSWORD_FIELD, FieldType::PASSWORD, extras: $extras);
 
         if ($this->serviceProvider->getRequestService()->getRequestMethod() == RequestMethod::POST && $validator->validate($_POST)) {
             try {
@@ -66,7 +68,7 @@ class Home extends BaseRouteProvider
         $dbService = $this->serviceProvider->getDatabaseService();
         $dbConn = $dbService->open();
 
-        $sql = "SELECT `slug`, `title` FROM `albums` ORDER BY `created_at` DESC LIMIT 10";
+        $sql = "SELECT `id`, `title` FROM `albums` ORDER BY `created_at` DESC LIMIT 10";
         $albums = $dbConn->getPairs($sql);
 
         return new RequestResult(null, [

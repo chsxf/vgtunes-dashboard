@@ -1,25 +1,26 @@
-{% extends "@mfx/HTML.twig" %}
+{% extends "root.twig" %}
 
-{% block body %}
+{% block page_title "Latest Albums" %}
+
+{% block page_content %}
 	{{ parent() }}
 
-	<h1>Latest Albums</h1>
-
-	<ul>
-		{% for slug, name in albums %}
-			<li>{{ name }}</li>
-		{% else %}
-			<li>
-				<em>No album found :(</em>
-			</li>
-		{% endfor %}
-	</ul>
-
-	<p>
-		<a href="/Album/add">Add new album</a>
-		-
-		<a href="/JsonGenerator/generate" target="_blank">Generate JSON</a>
-		-
-		<a href="/Home/signOut">Sign Out</a>
-	</p>
+	<table class="table table-striped">
+		<thead>
+			<th scope="col">Id</th>
+			<th scope="col">Name</th>
+		</thead>
+		<tbody>
+			{% for id, title in albums %}
+				<tr>
+					<th scope="row">{{ id }}</th>
+					<td>{{ title }}</td>
+				</tr>
+			{% else %}
+				<tr>
+					<td colspan="2" class="text-secondary">No album found :(</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
 {% endblock %}

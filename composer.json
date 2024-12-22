@@ -3,9 +3,10 @@
   "description": "A template package for bootstraping MFX projects",
   "homepage": "https://github.com/chsxf/mfx-project-template",
   "require": {
-    "chsxf/mfx": "^2",
+    "chsxf/mfx": "dev-dev-next",
     "web-token/jwt-library": "^4.0",
-    "twbs/bootstrap": "^5.3"
+    "twbs/bootstrap": "^5.3",
+    "twbs/bootstrap-icons": "^1.11"
   },
   "autoload": {
     "psr-4": {
@@ -25,7 +26,8 @@
   "scripts": {
     "post-update-cmd": [
       "rm -Rf application/bootstrap",
-      "cp -R vendor/twbs/bootstrap/dist application/bootstrap"
+      "cp -R vendor/twbs/bootstrap/dist application/bootstrap",
+      "cp -R vendor/twbs/bootstrap-icons/font application/bootstrap/font"
     ]
   }
 }

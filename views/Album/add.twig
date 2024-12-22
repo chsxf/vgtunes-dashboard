@@ -1,9 +1,9 @@
-{% extends "@mfx/HTML.twig" %}
+{% extends "root.twig" %}
 
-{% block body %}
+{% block page_title "Add New Album" %}
+
+{% block page_content %}
 	{{ parent() }}
-
-	<h1>Add New Album</h1>
 
 	<form method="post" action="/Album/add">
 		{% dv_field validator 'cover_url' %}

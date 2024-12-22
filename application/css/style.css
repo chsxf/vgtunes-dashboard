@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@500&display=swap');
+
+main {
+    height: 100vh;
+    max-height: 100vh;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.logo {
+    font-family: Jost;
+}
+
+#main-sidebar h1.logo {
+    font-size: 32px;
+    margin: 0;
+}

@@ -13,6 +13,16 @@ return new Config([
         ]
     ],
 
+    'scripts' => [
+        'bootstrap/js/bootstrap.bundle.min.js'
+    ],
+
+    'stylesheets' => [
+        'bootstrap/css/bootstrap.min.css',
+        'bootstrap/font/bootstrap-icons.min.css',
+        'css/style.css'
+    ],
+
     'request' => [
         'default_route' => 'Home/signIn'
     ],

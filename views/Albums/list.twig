@@ -1,0 +1,54 @@
+{% extends 'root.twig' %}
+
+{% block page_title "Albums" %}
+
+{% block page_content %}
+	{{ parent() }}
+
+	<p>
+		<a href="/Album/add" class="btn btn-primary">Add new album</a>
+	</p>
+
+	<table class="table table-striped">
+		<thead>
+			<th scope="col">Id</th>
+			<th scope="col">Title</th>
+			<th scope="col">Artist</th>
+		</thead>
+		<tbody>
+			{% for album in albums %}
+				<tr>
+					<th scope="row">{{ album.id }}</th>
+					<td>{{ album.title }}</td>
+					<td>{{ album.artist_name }}</td>
+				</tr>
+			{% else %}
+				<tr>
+					<td colspan="3" class="text-secondary">
+						No album found :(
+					</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	{% if albums is not empty %}
+		{% set current_page_index = pm.getCurrentPageIndex() %}
+		{% set page_count = pm.getPageCount() %}
+		<nav>
+			<ul class="pagination">
+				<li class="page-item {%- if current_page_index == 0 %} disabled{% endif %}">
+					<a class="page-link" href="/Albums/list?{{ pm.prevPageURLParams() }}">Previous</a>
+				</li>
+				{% for page_number in 1..page_count %}
+					<li class="page-item {%- if current_page_index == page_number - 1 %} active{% endif %}">
+						<a class="page-link" href="/Albums/list?{{ pm.pageURLParams(page_number - 1) }}">{{ page_number }}</a>
+					</li>
+				{% endfor %}
+				<li class="page-item {%- if current_page_index == page_count - 1 %} disabled{% endif %}">
+					<a class="page-link" href="/Albums/list?{{ pm.nextPageURLParams() }}">Next</a>
+				</li>
+			</ul>
+		</nav>
+	{% endif %}
+{% endblock %}
