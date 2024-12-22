@@ -5,9 +5,19 @@
 {% block page_content %}
 	{{ parent() }}
 
-	<p>
-		<a href="/Album/add" class="btn btn-primary">Add new album</a>
-	</p>
+	<div class="row my-3">
+		<div class="col-8">
+			<a href="/Album/add" class="btn btn-primary">
+				<i class="bi bi-plus-lg me-2"></i>Add new album</a>
+		</div>
+		<div class="col-4">
+			<form class="d-flex" method="get" action="/Albums/list">
+				<input class="form-control me-2" name="q" id="q" type="search" placeholder="Search">
+				<button class="btn btn-outline-primary text-nowrap" type="submit">
+					<i class="bi bi-search me-2"></i>Search</button>
+			</form>
+		</div>
+	</div>
 
 	<table class="table table-striped">
 		<thead>
@@ -35,7 +45,7 @@
 	{% if albums is not empty %}
 		{% set current_page_index = pm.getCurrentPageIndex() %}
 		{% set page_count = pm.getPageCount() %}
-		<nav>
+		<nav class="mt-3">
 			<ul class="pagination">
 				<li class="page-item {%- if current_page_index == 0 %} disabled{% endif %}">
 					<a class="page-link" href="/Albums/list?{{ pm.prevPageURLParams() }}">Previous</a>
