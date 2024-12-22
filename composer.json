@@ -28,9 +28,7 @@
       "rm -Rf application/bootstrap",
       "cp -R vendor/twbs/bootstrap/dist application/bootstrap",
       "cp -R vendor/twbs/bootstrap-icons/font application/bootstrap/font",
-      "rm -Rf vendor/twbs/bootstrap/site",
-      "rm -Rf vendor/twbs/bootstrap-icons/docs",
-      "rm -Rf vendor/twbs/bootstrap-icons/icons"
+      "rm -Rf vendor/twbs"
     ]
   }
 }
