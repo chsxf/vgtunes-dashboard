@@ -1,12 +1,10 @@
-This repository is a template for bootstraping MFX projects.
+# VGTunes Dashboard
 
-![](https://img.shields.io/badge/php-8.1%2B-7A86B8)
 [![](https://img.shields.io/badge/gitmoji-%20😜%20😍-FFDD67.svg)](https://gitmoji.dev/)
+![](https://analytics.chsxf.dev/GitHubStats.badge/vgtunes-dashboard/README.md)
 
-# Getting Started
+This repository contains the source code for the [VGTunes](https://vgtunes.chsxf.dev/) dashboard and manage the website content.
 
-You can create a new [MFX](https://github.com/chsxf/mfx) project by using the following command:
+# License
 
-```
-composer create-project chsxf/mfx-project-template target_directory_name
-```
+Unless stated otherwise, all source code and assets are distributed under the [MIT License](LICENSE).
