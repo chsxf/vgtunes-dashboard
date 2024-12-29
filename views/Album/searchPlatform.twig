@@ -1,0 +1,80 @@
+{% extends 'root.twig' %}
+
+{% block page_title %}
+	{% if title_prefix is not null %}
+		{{ title_prefix }}
+		-
+	{% endif %}
+	Platform Search
+{% endblock %}
+
+{% block page_content %}
+	{{ parent() }}
+
+	<form method="get" class="row g-3 mb-3">
+		{% dv_field validator 'title_prefix' %}
+		{% dv_field validator 'callback' %}
+		<div class="col-9">
+			{% dv_field validator 'q' %}
+		</div>
+		<div class="col-2">
+			{% dv_field validator 'platform' %}
+		</div>
+		<div class="col-1">
+			<button type="submit" class="btn btn-outline-primary">Search</button>
+		</div>
+	</form>
+
+	{% if search_results is not null %}
+		<div class="alert alert-light">{{ "%d results found"|format(search_results|length) }}</div>
+
+		{% if search_results is not empty %}
+			<table class="table table-striped table-hover">
+				<thead>
+					<th scope="col">&nbsp;</th>
+					<th scope="col">Title</th>
+					<th scope="col">Artist</th>
+					<th scope="col">&nbsp;</th>
+				</thead>
+				<tbody>
+					{% for result in search_results %}
+						<tr {%- if result.existsInDatabase %} class="table-success" {%- endif %}>
+							<td class="align-middle">
+								{% if result.cover_url is not empty %}
+									<img src="{{ result.cover_url }}" width="64">
+								{% else %}
+									&nsbp;
+								{% endif %}
+							</td>
+							<td class="align-middle">{{ result.title }}
+								<br/><small>
+									<span class="text-secondary">{{ result.platform_id }}</span>
+									{% if result.existsInDatabase %}
+										-
+										<span class="text-success">Already in database</span>
+									{% endif %}
+								</small>
+							</td>
+							<td class="align-middle">{{ result.artist_name }}</td>
+							<td class="align-middle">
+								{% if callback is not null and not result.existsInDatabase %}
+									{% do search_result_validator.validate(result, true) %}
+									<form method="post" action="{{ callback }}">
+										{% dv_field search_result_validator 'platform' %}
+										{% dv_field search_result_validator 'title' %}
+										{% dv_field search_result_validator 'artist_name' %}
+										{% dv_field search_result_validator 'cover_url' %}
+										{% dv_field search_result_validator 'platform_id' %}
+										<button class="btn btn-primary">Select</button>
+									</form>
+								{% else %}
+									&nbsp;
+								{% endif %}
+							</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		{% endif %}
+	{% endif %}
+{% endblock %}

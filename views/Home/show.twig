@@ -9,12 +9,18 @@
 		<thead>
 			<th scope="col">Id</th>
 			<th scope="col">Name</th>
+			<th scope="col">Artist</th>
+			<th scope="col">&nsbp;</th>
 		</thead>
 		<tbody>
-			{% for id, title in albums %}
+			{% for album in albums %}
 				<tr>
-					<th scope="row">{{ id }}</th>
-					<td>{{ title }}</td>
+					<th scope="row">{{ album.id }}</th>
+					<td>{{ album.title }}</td>
+					<td>{{ album.artist_name }}</td>
+					<td>
+						<a href="/Album/show/{{ album.id }}" class="btn btn-sm btn-outline-success">View Details</a>
+					</td>
 				</tr>
 			{% else %}
 				<tr>

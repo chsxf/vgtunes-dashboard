@@ -68,8 +68,13 @@ class Home extends BaseRouteProvider
         $dbService = $this->serviceProvider->getDatabaseService();
         $dbConn = $dbService->open();
 
-        $sql = "SELECT `id`, `title` FROM `albums` ORDER BY `created_at` DESC LIMIT 10";
-        $albums = $dbConn->getPairs($sql);
+        $sql = "SELECT `al`.`id`, `al`.`title`, `ar`.`name` AS `artist_name`
+                    FROM `albums` AS `al`
+                    LEFT JOIN `artists` AS `ar`
+                        ON `ar`.`id` = `al`.`artist_id`
+                    ORDER BY `al`.`created_at`
+                    DESC LIMIT 10";
+        $albums = $dbConn->get($sql, \PDO::FETCH_ASSOC);
 
         return new RequestResult(null, [
             'albums' => $albums

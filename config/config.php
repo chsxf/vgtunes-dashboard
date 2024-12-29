@@ -61,6 +61,7 @@ return new Config([
     ],
 
     'covers' => [
-        'output_path' => $secrets['COVERS_PATH']
+        'output_path' => $secrets['COVERS_PATH'],
+        'base_url' => $secrets['COVERS_BASE_URL']
     ]
 ]);

@@ -1,0 +1,75 @@
+{% extends 'root.twig' %}
+
+{% block page_title %}
+	Album Details
+	{% if album_details.slug is not defined %}
+		<span class="text-warning">(Preview)</span>
+	{% endif %}
+{% endblock %}
+
+{% block page_content %}
+	{{ parent() }}
+
+	<div class="row">
+		<div class="col-2" class="border-success">
+			<img src="{{ album_details.cover_url }}" style="width: 100%"/>
+		</div>
+
+		<div class="col-10">
+			<h2>{{ album_details.title }}</h2>
+			<h3 class="text-secondary">{{ album_details.artist_name }}</h3>
+			<hr/>
+			{% for platform, platform_name in platforms %}
+				<div class="row mb-3">
+					<div class="col-1 text-end">
+						{{ platform_name }}
+					</div>
+
+					<div class="col-2 text-secondary">
+						{% if album_details.instances[platform] is defined %}
+							{{ album_details.instances[platform].id }}
+						{% else %}
+							-
+						{% endif %}
+					</div>
+
+					<div class="col-auto">
+						{% if album_details.instances[platform] is defined %}
+							<a href="{{ album_details.instances[platform].url }}" class="btn btn-sm btn-outline-success" target="_blank">Look Up</a>
+						{% else %}
+							<form method="get" action="/Album/searchPlatform">
+								<input type="hidden" name="platform" value="{{ platform }}"/>
+								<input type="hidden" name="q" value="{{ album_details.title }}"/>
+								{% for name, value in search_query_params %}
+									<input type="hidden" name="{{ name }}" value="{{ value }}"/>
+								{% endfor %}
+								<button class="btn btn-sm btn-outline-primary">Search</button>
+							</form>
+						{% endif %}
+					</div>
+				</div>
+			{% endfor %}
+			{% if album_details.slug is defined %}
+				<hr/>
+				<div class="row">
+					<div class="col-1 text-end">Slug</div>
+					<div class="col-2 text-secondary">{{ album_details.slug }}</div>
+				</div>
+			{% endif %}
+			<hr/>
+			<div class="row">
+				<div class="col-auto">
+					{% if album_details.slug is defined %}
+						<form action="/Album/remove" method="post">
+							<button class="btn btn-danger" disabled>Remove</button>
+						</form>
+					{% else %}
+						<form action="/Album/commit" method="post">
+							<button class="btn btn-warning">Commit</button>
+						</form>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}

@@ -17,6 +17,9 @@ final class CoverProcessor
         $reductions = [500, 250, 100];
         foreach ($reductions as $reduction) {
             $reducedImage = imagescale($srcImage, $reduction, mode: IMG_BICUBIC);
+            if ($reducedImage === false) {
+                $reducedImage = imagescale($srcImage, $reduction);
+            }
             $sizes[$reduction] = self::getJPEGAsString($reducedImage);
             imagedestroy($reducedImage);
         }

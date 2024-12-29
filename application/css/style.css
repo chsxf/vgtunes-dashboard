@@ -15,3 +15,8 @@ main {
     font-size: 32px;
     margin: 0;
 }
+
+#page-content-container {
+    overflow-y: auto;
+    overflow-x: hidden;
+}

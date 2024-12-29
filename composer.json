@@ -3,6 +3,7 @@
   "description": "A template package for bootstraping MFX projects",
   "homepage": "https://github.com/chsxf/mfx-project-template",
   "require": {
+    "php": "^8.3",
     "chsxf/mfx": "dev-dev-next",
     "web-token/jwt-library": "^4.0",
     "twbs/bootstrap": "^5.3",
