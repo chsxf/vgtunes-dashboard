@@ -169,7 +169,7 @@ final class Album extends BaseRouteProvider
                 }
 
                 $albumDetails = $albumRow;
-                $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_1000.jpg", $this->serviceProvider->getConfigService()->getValue('covers.base_url'), $albumRow['slug']);
+                $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_500.jpg", $this->serviceProvider->getConfigService()->getValue('covers.base_url'), $albumRow['slug']);
                 $albumDetails[self::INSTANCES_FIELD] = $instances;
             } finally {
             }
