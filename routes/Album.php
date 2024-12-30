@@ -274,6 +274,9 @@ final class Album extends BaseRouteProvider
             }
 
             $dbConn->commit();
+
+            unset($sessionService[self::SESS_ALBUM_DATA]);
+
             trigger_notif("The album has been successfully added with the slug '{$slug}'");
             return RequestResult::buildRedirectRequestResult("/Album/show/{$albumId}");
         } catch (Exception $e) {
