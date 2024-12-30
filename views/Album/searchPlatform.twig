@@ -1,7 +1,7 @@
 {% extends 'root.twig' %}
 
 {% block page_title %}
-	{% if title_prefix is not null %}
+	{% if title_prefix is not empty %}
 		{{ title_prefix }}
 		-
 	{% endif %}
@@ -57,7 +57,7 @@
 							</td>
 							<td class="align-middle">{{ result.artist_name }}</td>
 							<td class="align-middle">
-								{% if callback is not null and not result.existsInDatabase %}
+								{% if callback is not empty and not result.existsInDatabase %}
 									{% do search_result_validator.validate(result, true) %}
 									<form method="post" action="{{ callback }}">
 										{% dv_field search_result_validator 'platform' %}
