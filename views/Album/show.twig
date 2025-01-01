@@ -26,7 +26,7 @@
 					</div>
 
 					<div class="col-4 text-secondary">
-						{% if album_details.instances[platform] is defined %}
+						{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null %}
 							{% with { platform_details: album_details.instances[platform] } only %}
 							{{ platform_details.platform_id }}
 							{% if platform_details.title is defined %}
@@ -47,7 +47,7 @@
 					</div>
 
 					<div class="col-auto">
-						{% if album_details.instances[platform] is defined %}
+						{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null %}
 							<a href="{{ album_details.instances[platform].url }}" class="btn btn-sm btn-outline-success" target="_blank">Look Up</a>
 						{% else %}
 							<form method="get" action="/Album/searchPlatform">

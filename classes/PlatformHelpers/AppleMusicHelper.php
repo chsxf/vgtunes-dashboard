@@ -13,6 +13,8 @@ use PlatformAlbum;
 
 final class AppleMusicHelper implements IPlatformHelper
 {
+    use SearchExactMatchTrait;
+
     private const string APPLE_MUSIC_LOOKUP_URL = "https://music.apple.com/album/{PLATFORM_ID}";
 
     public function __construct(private IConfigService $configService) {}

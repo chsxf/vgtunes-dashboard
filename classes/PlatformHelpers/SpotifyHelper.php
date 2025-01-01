@@ -10,6 +10,8 @@ use PlatformAlbum;
 
 final class SpotifyHelper implements IPlatformHelper
 {
+    use SearchExactMatchTrait;
+
     private const SPOTIFY_ALBUM_LOOKUP_URL = "https://open.spotify.com/album/{PLATFORM_ID}";
 
     public function __construct(private IConfigService $configService, private IDatabaseService $databaseService, private IAuthenticationService $authService) {}

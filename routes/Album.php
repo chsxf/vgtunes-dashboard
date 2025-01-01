@@ -76,6 +76,13 @@ final class Album extends BaseRouteProvider
                 ];
             }
 
+            foreach (array_keys(PlatformHelperFactory::PLATFORMS) as $platform) {
+                if (!array_key_exists($platform, $sessionAlbumData[self::INSTANCES_FIELD])) {
+                    $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
+                    $sessionAlbumData[self::INSTANCES_FIELD][$platform] = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTIST_NAME_FIELD]);
+                }
+            }
+
             $sessionService[self::SESS_ALBUM_DATA] = $sessionAlbumData;
             return RequestResult::buildRedirectRequestResult('/Album/show');
         }
@@ -195,8 +202,10 @@ final class Album extends BaseRouteProvider
         }
 
         array_walk($albumDetails[self::INSTANCES_FIELD], function (&$instance, $platform) {
-            $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
-            $instance['url'] = $helper->getLookUpURL($instance[self::PLATFORM_ID_FIELD]);
+            if (!empty($instance[self::PLATFORM_ID_FIELD])) {
+                $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
+                $instance['url'] = $helper->getLookUpURL($instance[self::PLATFORM_ID_FIELD]);
+            }
         });
 
         return new RequestResult(data: [

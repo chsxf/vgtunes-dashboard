@@ -7,6 +7,8 @@ use PlatformAlbum;
 
 final class DeezerPlatformHelper implements IPlatformHelper
 {
+    use SearchExactMatchTrait;
+
     private const DEEZER_API_TEMPLATE_URL = "https://api.deezer.com/search/album?q={ALBUM_NAME}";
     private const DEEZER_ALBUM_LOOKUP_URL = "https://www.deezer.com/fr/album/{PLATFORM_ID}";
 
