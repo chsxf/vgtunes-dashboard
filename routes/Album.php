@@ -50,7 +50,12 @@ final class Album extends BaseRouteProvider
 
             if (isset($sessionService[self::SESS_ALBUM_DATA])) {
                 $sessionAlbumData = $sessionService[self::SESS_ALBUM_DATA];
-                $sessionAlbumData[self::INSTANCES_FIELD][$validator[self::PLATFORM_FIELD]] = $validator[self::PLATFORM_ID_FIELD];
+                $sessionAlbumData[self::INSTANCES_FIELD][$validator[self::PLATFORM_FIELD]] = [
+                    self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
+                    self::TITLE_FIELD => $validator[self::TITLE_FIELD],
+                    self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
+                    self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD]
+                ];
 
                 if ($validator[self::PLATFORM_FIELD] == PlatformHelperFactory::DEEZER) {
                     $sessionAlbumData[self::COVER_URL_FIELD] = $validator[self::COVER_URL_FIELD];
@@ -61,7 +66,12 @@ final class Album extends BaseRouteProvider
                     self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
                     self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
                     self::INSTANCES_FIELD => [
-                        $validator[self::PLATFORM_FIELD] => $validator[self::PLATFORM_ID_FIELD]
+                        $validator[self::PLATFORM_FIELD] => [
+                            self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
+                            self::TITLE_FIELD => $validator[self::TITLE_FIELD],
+                            self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
+                            self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD]
+                        ]
                     ]
                 ];
             }
@@ -84,39 +94,42 @@ final class Album extends BaseRouteProvider
         }
 
         $searchResults = null;
-        if ($validator->validate($_GET)) {
-            try {
-                $platformHelper = PlatformHelperFactory::get($validator[self::PLATFORM_FIELD], $this->serviceProvider);
-                $searchResults = $platformHelper->search($validator[self::QUERY_FIELD]);
+        $hasQuery = !empty(trim($_GET[self::QUERY_FIELD] ?? ''));
+        if ($validator->validate($_GET, silent: !$hasQuery)) {
+            if ($hasQuery) {
+                try {
+                    $platformHelper = PlatformHelperFactory::get($validator[self::PLATFORM_FIELD], $this->serviceProvider);
+                    $searchResults = $platformHelper->search($validator[self::QUERY_FIELD]);
 
-                if (!empty($searchResults)) {
-                    $dbService = $this->serviceProvider->getDatabaseService();
-                    $dbConn = $dbService->open();
+                    if (!empty($searchResults)) {
+                        $dbService = $this->serviceProvider->getDatabaseService();
+                        $dbConn = $dbService->open();
 
-                    $queryMarks = implode(',', array_pad([], count($searchResults), '?'));
-                    $values = [$platformHelper->getPlatform()];
-                    foreach ($searchResults as $result) {
-                        $values[] = $result->platform_id;
-                    }
+                        $queryMarks = implode(',', array_pad([], count($searchResults), '?'));
+                        $values = [$platformHelper->getPlatform()];
+                        foreach ($searchResults as $result) {
+                            $values[] = $result->platform_id;
+                        }
 
-                    $sql = "SELECT `platform_id`, COUNT(DISTINCT `album_id`)
-                                FROM `album_instances`
-                                WHERE `platform` = ? AND `platform_id` IN ({$queryMarks})
-                                GROUP BY `platform_id`";
-                    $countByPlatformId = $dbConn->getPairs($sql, $values);
-                    if ($countByPlatformId === false) {
-                        throw new ErrorException('An error has occured while querying the database');
-                    }
+                        $sql = "SELECT `platform_id`, COUNT(DISTINCT `album_id`)
+                                    FROM `album_instances`
+                                    WHERE `platform` = ? AND `platform_id` IN ({$queryMarks})
+                                    GROUP BY `platform_id`";
+                        $countByPlatformId = $dbConn->getPairs($sql, $values);
+                        if ($countByPlatformId === false) {
+                            throw new ErrorException('An error has occured while querying the database');
+                        }
 
-                    foreach ($searchResults as $result) {
-                        if (!empty($countByPlatformId[$result->platform_id])) {
-                            $result->existsInDatabase = true;
+                        foreach ($searchResults as $result) {
+                            if (!empty($countByPlatformId[$result->platform_id])) {
+                                $result->existsInDatabase = true;
+                            }
                         }
                     }
+                } catch (Exception $e) {
+                    trigger_error($e->getMessage());
+                    return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
                 }
-            } catch (Exception $e) {
-                trigger_error($e->getMessage());
-                return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
             }
         }
 
@@ -164,7 +177,7 @@ final class Album extends BaseRouteProvider
                 }
 
                 $sql = "SELECT `platform`, `platform_id` FROM `album_instances` WHERE `album_id` = ?";
-                if (($instances = $dbConn->getPairs($sql, $albumId)) === false) {
+                if (($instances = $dbConn->getIndexed($sql, self::PLATFORM_FIELD, \PDO::FETCH_ASSOC, $albumId)) === false) {
                     throw new Exception('An error has occured while querying the database', E_USER_ERROR);
                 }
 
@@ -182,10 +195,8 @@ final class Album extends BaseRouteProvider
         }
 
         array_walk($albumDetails[self::INSTANCES_FIELD], function (&$instance, $platform) {
-            $result = ['id' => $instance];
             $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
-            $result['url'] = $helper->getLookUpURL($instance);
-            $instance = $result;
+            $instance['url'] = $helper->getLookUpURL($instance[self::PLATFORM_ID_FIELD]);
         });
 
         return new RequestResult(data: [
@@ -212,8 +223,8 @@ final class Album extends BaseRouteProvider
             $sessionAlbumData = $sessionService[self::SESS_ALBUM_DATA];
 
             $hasAtLeastOnePlatformId = false;
-            foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $platformId) {
-                if (!empty($platformId)) {
+            foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
+                if (!empty($instanceData)) {
                     $hasAtLeastOnePlatformId = true;
                     break;
                 }
@@ -251,10 +262,10 @@ final class Album extends BaseRouteProvider
             }
             $albumId = $dbConn->lastInsertId();
 
-            foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $platformId) {
-                if (!empty($platformId)) {
+            foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
+                if (!empty($instanceData)) {
                     $sql = 'INSERT INTO `album_instances` VALUE (?, ?, ?)';
-                    if (!$dbConn->exec($sql, $albumId, $platform, $platformId)) {
+                    if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD])) {
                         throw new Exception('A database error has occured');
                     }
                 }

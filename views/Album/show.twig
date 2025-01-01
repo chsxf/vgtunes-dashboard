@@ -25,9 +25,22 @@
 						{{ platform_name }}
 					</div>
 
-					<div class="col-2 text-secondary">
+					<div class="col-4 text-secondary">
 						{% if album_details.instances[platform] is defined %}
-							{{ album_details.instances[platform].id }}
+							{% with { platform_details: album_details.instances[platform] } only %}
+							{{ platform_details.platform_id }}
+							{% if platform_details.title is defined %}
+								<div class="row">
+									<div class="col-2">
+										<img src="{{ platform_details.cover_url }}" style="width: 100%"/>
+									</div>
+									<div class="col-10">
+										{{ platform_details.title }}
+										<br/>{{ platform_details.artist_name }}
+									</div>
+								</div>
+							{% endif %}
+							{% endwith %}
 						{% else %}
 							-
 						{% endif %}
