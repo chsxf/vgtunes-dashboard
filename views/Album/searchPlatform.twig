@@ -77,4 +77,31 @@
 			</table>
 		{% endif %}
 	{% endif %}
+
+	{% if (search_results is null or search_results is empty) and previous_searches is not empty %}
+		<hr/>
+		<table class="table table-striped table-hover">
+			<thead>
+				<th scope="col">Previous Searches</th>
+				<th scope="col">&nbsp;</th>
+			</thead>
+			<tbody>
+				{% for search in previous_searches %}
+					<tr class="align-middle">
+						<td>{{ search.query }}</td>
+						<td>
+							<form method="get" action="/Album/searchPlatform">
+								{% set search_validator = search.validator %}
+								{% dv_field search_validator 'platform' %}
+								{% dv_field search_validator 'title_prefix' %}
+								{% dv_field search_validator 'callback' %}
+								{% dv_field search_validator 'q' %}
+								<button class="btn btn-primary">Search Again</button>
+							</form>
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	{% endif %}
 {% endblock %}

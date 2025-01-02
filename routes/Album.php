@@ -19,15 +19,16 @@ final class Album extends BaseRouteProvider
 {
     private const SESS_ALBUM_DATA = 'album-data';
 
-    private const QUERY_FIELD = 'q';
-    private const PLATFORM_FIELD = 'platform';
-    private const CALLBACK_FIELD = 'callback';
-    private const TITLE_PREFIX_FIELD = 'title_prefix';
-    private const TITLE_FIELD = 'title';
-    private const ARTIST_NAME_FIELD = 'artist_name';
-    private const COVER_URL_FIELD = 'cover_url';
-    private const INSTANCES_FIELD = 'instances';
-    private const PLATFORM_ID_FIELD = 'platform_id';
+    private const string QUERY_FIELD = 'q';
+    private const string PLATFORM_FIELD = 'platform';
+    private const string CALLBACK_FIELD = 'callback';
+    private const string TITLE_PREFIX_FIELD = 'title_prefix';
+    private const string TITLE_FIELD = 'title';
+    private const string ARTIST_NAME_FIELD = 'artist_name';
+    private const string COVER_URL_FIELD = 'cover_url';
+    private const string INSTANCES_FIELD = 'instances';
+    private const string PLATFORM_ID_FIELD = 'platform_id';
+    private const string PREVIOUS_SEARCHES = 'previous_searches';
 
     private const array SEARCH_QUERY_PARAMS = [self::CALLBACK_FIELD => '/Album/add', self::TITLE_PREFIX_FIELD => 'Add New Album'];
 
@@ -100,10 +101,26 @@ final class Album extends BaseRouteProvider
             $f->addOptions(PlatformHelperFactory::PLATFORMS);
         }
 
+        $previousSearches = [];
+        if (!empty($_COOKIE[self::PREVIOUS_SEARCHES])) {
+            try {
+                $previousSearches = json_decode($_COOKIE[self::PREVIOUS_SEARCHES], flags: JSON_OBJECT_AS_ARRAY | JSON_THROW_ON_ERROR);
+            } finally {
+            }
+        }
+
         $searchResults = null;
         $hasQuery = !empty(trim($_GET[self::QUERY_FIELD] ?? ''));
         if ($validator->validate($_GET, silent: !$hasQuery)) {
             if ($hasQuery) {
+                if (!in_array($validator[self::QUERY_FIELD], $previousSearches)) {
+                    if (count($previousSearches) >= 10) {
+                        $previousSearches = array_slice($previousSearches, 1);
+                    }
+                    $previousSearches[] = $validator[self::QUERY_FIELD];
+                    setcookie(self::PREVIOUS_SEARCHES, json_encode($previousSearches), time() + 86400 * 30, '/Album/searchPlatform');
+                }
+
                 try {
                     $platformHelper = PlatformHelperFactory::get($validator[self::PLATFORM_FIELD], $this->serviceProvider);
                     $searchResults = $platformHelper->search($validator[self::QUERY_FIELD]);
@@ -140,12 +157,21 @@ final class Album extends BaseRouteProvider
             }
         }
 
+        array_walk($previousSearches, function (&$search, $key) use ($validator) {
+            $search = [
+                'query' => $search,
+                'validator' => self::createPreviousSearchValidator($validator, $search)
+            ];
+        });
+        $previousSearches = array_reverse($previousSearches);
+
         return new RequestResult(data: [
             'validator' => $validator,
             'search_result_validator' => self::createSearchResultValidator($validator[self::PLATFORM_FIELD]),
             'search_results' => $searchResults,
             'title_prefix' => $_REQUEST[self::TITLE_PREFIX_FIELD] ?? null,
-            'callback' => $_REQUEST[self::CALLBACK_FIELD] ?? null
+            'callback' => $_REQUEST[self::CALLBACK_FIELD] ?? null,
+            'previous_searches' => $previousSearches
         ]);
     }
 
@@ -158,6 +184,16 @@ final class Album extends BaseRouteProvider
         $validator->createField(self::ARTIST_NAME_FIELD, FieldType::HIDDEN);
         $validator->createField(self::COVER_URL_FIELD, FieldType::HIDDEN, required: false);
         $validator->createField(self::PLATFORM_ID_FIELD, FieldType::HIDDEN);
+        return $validator;
+    }
+
+    private static function createPreviousSearchValidator(DataValidator $sourceValidator, string $query): DataValidator
+    {
+        $validator = new DataValidator();
+        $validator->createField(self::PLATFORM_FIELD, FieldType::HIDDEN, $sourceValidator[self::PLATFORM_FIELD] ?? PlatformHelperFactory::DEEZER);
+        $validator->createField(self::CALLBACK_FIELD, FieldType::HIDDEN, $sourceValidator[self::CALLBACK_FIELD], required: false);
+        $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::HIDDEN, $sourceValidator[self::TITLE_PREFIX_FIELD], required: false);
+        $validator->createField(self::QUERY_FIELD, FieldType::HIDDEN, $query);
         return $validator;
     }
 
