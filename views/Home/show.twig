@@ -7,6 +7,7 @@
 
 	<table class="table table-striped">
 		<thead>
+			<th scope="col">&nbsp;</th>
 			<th scope="col">Id</th>
 			<th scope="col">Name</th>
 			<th scope="col">Artist</th>
@@ -14,7 +15,8 @@
 		</thead>
 		<tbody>
 			{% for album in albums %}
-				<tr>
+				<tr class="align-middle">
+					<td><img src="{{ album.cover_url }}" height="50"/></td>
 					<th scope="row">{{ album.id }}</th>
 					<td>{{ album.title }}</td>
 					<td>{{ album.artist_name }}</td>

@@ -5,7 +5,13 @@
 {% block page_content %}
 	{{ parent() }}
 
-	<div class="row my-3">
+	<div class="alert alert-dark">
+		The database contains currently
+		<strong>{{ pm.getTotalItemCount() }}</strong>
+		albums.
+	</div>
+
+	<div class="row mb-3">
 		<div class="col-8">
 			<a href="/Album/add?new=1" class="btn btn-primary">
 				<i class="bi bi-plus-lg me-2"></i>Add new album</a>
@@ -21,6 +27,7 @@
 
 	<table class="table table-striped">
 		<thead>
+			<th scope="col">&nbsp;</th>
 			<th scope="col">Id</th>
 			<th scope="col">Title</th>
 			<th scope="col">Artist</th>
@@ -28,7 +35,8 @@
 		</thead>
 		<tbody>
 			{% for album in albums %}
-				<tr>
+				<tr class="align-middle">
+					<td><img src="{{ album.cover_url}}" height="50"/></td>
 					<th scope="row">{{ album.id }}</th>
 					<td>{{ album.title }}</td>
 					<td>{{ album.artist_name }}</td>
@@ -61,6 +69,9 @@
 				{% endfor %}
 				<li class="page-item {%- if current_page_index == page_count - 1 %} disabled{% endif %}">
 					<a class="page-link" href="/Albums/list?{{ pm.nextPageURLParams() }}">Next</a>
+				</li>
+				<li class="page-item disabled">
+					<a class="page-link" href="#">Blabla</a>
 				</li>
 			</ul>
 		</nav>
