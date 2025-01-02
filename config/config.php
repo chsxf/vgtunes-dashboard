@@ -63,5 +63,9 @@ return new Config([
     'covers' => [
         'output_path' => $secrets['COVERS_PATH'],
         'base_url' => $secrets['COVERS_BASE_URL']
+    ],
+
+    'generator' => [
+        'key' => $secrets['GENERATOR_KEY']
     ]
 ]);
