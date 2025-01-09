@@ -67,5 +67,12 @@ return new Config([
 
     'generator' => [
         'key' => $secrets['GENERATOR_KEY']
+    ],
+
+    'analytics' => [
+        'enabled' => true,
+        'endpoint' => $secrets['ANALYTICS_ENDPOINT'],
+        'access_key' => $secrets['ANALYTICS_ACCESS_KEY'],
+        'domain' => $secrets['ANALYTICS_DOMAIN']
     ]
 ]);

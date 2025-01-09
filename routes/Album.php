@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Analytics\TimeFrame;
+use chsxf\MFX\Attributes\PreRouteCallback;
 use chsxf\MFX\Attributes\RequiredRequestMethod;
 use chsxf\MFX\Attributes\Route;
 use chsxf\MFX\DataValidator;
@@ -197,13 +199,15 @@ final class Album extends BaseRouteProvider
         return $validator;
     }
 
-    #[Route, RequiredRequestMethod(RequestMethod::GET)]
+    #[Route, RequiredRequestMethod(RequestMethod::GET), PreRouteCallback('GlobalCallbacks::googleChartsPreRouteCallback')]
     public function show(array $params): RequestResult
     {
         $sessionService = $this->serviceProvider->getSessionService();
 
+        $isSavedAlbum = !empty($params);
+
         $albumDetails = null;
-        if (!empty($params)) {
+        if ($isSavedAlbum) {
             $albumId = $params[0];
 
             $dbService = $this->serviceProvider->getDatabaseService();
@@ -227,7 +231,7 @@ final class Album extends BaseRouteProvider
                 $albumDetails = $albumRow;
                 $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_500.jpg", $this->serviceProvider->getConfigService()->getValue('covers.base_url'), $albumRow['slug']);
                 $albumDetails[self::INSTANCES_FIELD] = $instances;
-            } finally {
+            } catch (Exception) {
             }
         } else if (isset($sessionService[self::SESS_ALBUM_DATA])) {
             $albumDetails = $sessionService[self::SESS_ALBUM_DATA];
@@ -244,11 +248,38 @@ final class Album extends BaseRouteProvider
             }
         });
 
-        return new RequestResult(data: [
+        $requestResultData = [
             'album_details' => $albumDetails,
             'platforms' => PlatformHelperFactory::PLATFORMS,
             'search_query_params' => self::SEARCH_QUERY_PARAMS
-        ]);
+        ];
+
+        $analyticsConfig = $this->serviceProvider->getConfigService()->getValue('analytics');
+        if ($isSavedAlbum && !empty($analyticsConfig['enabled'])) {
+            $this->serviceProvider->getScriptService()->add('/js/timeFrameSelector.js', defer: true);
+
+            $validator = TimeFrame::buildAnalyticsTimeFrameSelectorValidator();
+            $validator->validate($_GET, silent: true);
+
+            $timeFrame = TimeFrame::tryFrom(intval($validator->getFieldValue(TimeFrame::TIMEFRAME_FIELD, true))) ?? TimeFrame::lastDays7;
+
+            $url = "{$analyticsConfig['endpoint']}/DataExport.queryPage?";
+            $queryParams = [
+                'days' => $timeFrame->value,
+                'domain' => $analyticsConfig['domain'],
+                'path' => "/albums/{$albumDetails['slug']}/"
+            ];
+            $url .= http_build_query($queryParams);
+
+            $requestResultData['analytics'] = [
+                'access_key' => $analyticsConfig['access_key'],
+                'graphDataURL' => $url,
+                'validator' => $validator,
+                'hAxisTitle' => $timeFrame === TimeFrame::realtime ? 'Time' : 'Date'
+            ];
+        }
+
+        return new RequestResult(data: $requestResultData);
     }
 
     #[Route, RequiredRequestMethod(RequestMethod::POST)]
