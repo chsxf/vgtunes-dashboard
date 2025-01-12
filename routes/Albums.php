@@ -77,7 +77,7 @@ final class Albums extends BaseRouteProvider implements IPaginationProvider
 
         $coversBaseUrl = $this->serviceProvider->getConfigService()->getValue('covers.base_url');
         array_walk($albums, function (&$album, $index) use ($coversBaseUrl) {
-            $album['cover_url'] = sprintf("%s%s/cover_100.jpg", $coversBaseUrl, $album['slug']);
+            $album['cover_url'] = sprintf("%s%s/cover_100.webp", $coversBaseUrl, $album['slug']);
         });
 
         return new RequestResult(data: ['albums' => $albums, 'pm' => $pageManager]);

@@ -229,7 +229,7 @@ final class Album extends BaseRouteProvider
                 }
 
                 $albumDetails = $albumRow;
-                $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_500.jpg", $this->serviceProvider->getConfigService()->getValue('covers.base_url'), $albumRow['slug']);
+                $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_500.webp", $this->serviceProvider->getConfigService()->getValue('covers.base_url'), $albumRow['slug']);
                 $albumDetails[self::INSTANCES_FIELD] = $instances;
             } catch (Exception) {
             }
@@ -354,7 +354,8 @@ final class Album extends BaseRouteProvider
                 throw new Exception('Unable to create the covers folder');
             }
             foreach ($coverSizes as $size => $coverImage) {
-                $filePath = "{$outputPath}/cover_{$size}.jpg";
+                $ext = is_int($size) ? 'webp' : 'jpg';
+                $filePath = "{$outputPath}/cover_{$size}.{$ext}";
                 if (file_put_contents($filePath, $coverImage) === false) {
                     throw new Exception('Unable to write cover file');
                 }

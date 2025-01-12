@@ -64,7 +64,7 @@ function createRow(parentElement, rowData) {
     const img = document.createElement("img");
 
     const src = document.createAttribute("src");
-    src.value = `{{ analytics.cover_base_url|e('js') }}/${rowData[0]}/cover_100.jpg`;
+    src.value = `{{ analytics.cover_base_url|e('js') }}/${rowData[0]}/cover_100.webp`;
     img.setAttributeNode(src);
 
     const height = document.createAttribute("height");

@@ -10,7 +10,8 @@ final class CoverProcessor
         }
 
         $sizes = [
-            1000 => self::getJPEGAsString($srcImage)
+            'source' => self::getJPEGAsString($srcImage, 100),
+            1000 => self::getWebPAsString($srcImage)
         ];
 
         // Reductions
@@ -20,7 +21,7 @@ final class CoverProcessor
             if ($reducedImage === false) {
                 $reducedImage = imagescale($srcImage, $reduction);
             }
-            $sizes[$reduction] = self::getJPEGAsString($reducedImage);
+            $sizes[$reduction] = self::getWebPAsString($reducedImage);
             imagedestroy($reducedImage);
         }
         imagedestroy($srcImage);
@@ -28,10 +29,17 @@ final class CoverProcessor
         return $sizes;
     }
 
-    private static function getJPEGAsString(GdImage $image): string
+    private static function getJPEGAsString(GdImage $image, int $quality = 90): string
     {
         ob_start();
-        imagejpeg($image, null, 90);
+        imagejpeg($image, null, $quality);
+        return ob_get_clean();
+    }
+
+    private static function getWebPAsString(GdImage $image, int $quality = 60): string
+    {
+        ob_start();
+        imagewebp($image, null, $quality);
         return ob_get_clean();
     }
 }
