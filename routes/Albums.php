@@ -2,6 +2,7 @@
 
 use chsxf\MFX\Attributes\RequiredRequestMethod;
 use chsxf\MFX\Attributes\Route;
+use chsxf\MFX\DatabaseConnectionInstance;
 use chsxf\MFX\IPaginationProvider;
 use chsxf\MFX\PaginationManager;
 use chsxf\MFX\RequestMethod;
@@ -59,27 +60,67 @@ final class Albums extends BaseRouteProvider implements IPaginationProvider
         $dbService = $this->serviceProvider->getDatabaseService();
         $dbConn = $dbService->open();
 
+        try {
+            $albums = self::search($this->serviceProvider, $dbConn, $pageManager->getCurrentPageStart(), $pageManager->getItemCountPerPage(), $this->filteredQuery);
+        } catch (Exception $e) {
+            trigger_error($e->getMessage(), E_ERROR);
+            return RequestResult::buildRedirectRequestResult('/');
+        }
+
+        return new RequestResult(data: ['albums' => $albums, 'pm' => $pageManager]);
+    }
+
+    public static function search(ICoreServiceProvider $coreServiceProvider, DatabaseConnectionInstance $dbConn, int $start, int $count, ?string $query = null): array
+    {
         $sql = "SELECT `al`.`id`, `al`.`slug`, `al`.`title`, `ar`.`name` AS `artist_name`
                     FROM `albums` AS `al`
                     LEFT JOIN `artists` AS `ar`
                         ON `ar`.`id` = `al`.`artist_id`";
         $values = [];
-        if ($this->filteredQuery !== null) {
+        if ($query !== null) {
             $sql .= " WHERE `al`.`title` LIKE ?";
-            $values[] = "%{$this->filteredQuery}%";
+            $values[] = "%{$query}%";
         }
         $sql .= " ORDER BY `al`.`title` ASC";
-        $sql .= $pageManager->sqlLimit();
+        $sql .= sprintf(" LIMIT %d, %d", $start, $count);
         if (($albums = $dbConn->get($sql, \PDO::FETCH_ASSOC, $values)) === false) {
-            trigger_error('An error has occured while loading albums.', E_ERROR);
-            return RequestResult::buildRedirectRequestResult('/');
+            throw new Exception('An error has occured while loading albums.');
         }
 
-        $coversBaseUrl = $this->serviceProvider->getConfigService()->getValue('covers.base_url');
-        array_walk($albums, function (&$album, $index) use ($coversBaseUrl) {
+        $platformsByAlbum = [];
+        if (!empty($albums)) {
+            $albumIds = array_map(fn($album) => $album['id'], $albums);
+            $marks = implode(',', array_pad([], count($albumIds), '?'));
+            $sql = "SELECT `album_id`, `platform`
+                        FROM `album_instances`
+                        WHERE `album_id` IN ({$marks})";
+            if (($albumPlatforms = $dbConn->get($sql, \PDO::FETCH_ASSOC, $albumIds)) === false) {
+                throw new Exception('An error has occured while loading album platforms.');
+            }
+
+            foreach ($albumPlatforms as $albumPlatform) {
+                $id = $albumPlatform['album_id'];
+                $platform = $albumPlatform['platform'];
+                if (array_key_exists($id, $platformsByAlbum)) {
+                    $platformsByAlbum[$id][] = $platform;
+                } else {
+                    $platformsByAlbum[$id] = [$platform];
+                }
+            }
+        }
+
+        $coversBaseUrl = $coreServiceProvider->getConfigService()->getValue('covers.base_url');
+        array_walk($albums, function (&$album, $index) use ($coversBaseUrl, $platformsByAlbum) {
             $album['cover_url'] = sprintf("%s%s/cover_100.webp", $coversBaseUrl, $album['slug']);
+
+            if (array_key_exists($album['id'], $platformsByAlbum)) {
+                $album['platforms'] = $platformsByAlbum[$album['id']];
+                sort($album['platforms']);
+            } else {
+                $album['platforms'] = [];
+            }
         });
 
-        return new RequestResult(data: ['albums' => $albums, 'pm' => $pageManager]);
+        return $albums;
     }
 }

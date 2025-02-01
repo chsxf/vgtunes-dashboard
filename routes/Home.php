@@ -68,18 +68,7 @@ class Home extends BaseRouteProvider
         $dbService = $this->serviceProvider->getDatabaseService();
         $dbConn = $dbService->open();
 
-        $sql = "SELECT `al`.`id`, `al`.`slug`, `al`.`title`, `ar`.`name` AS `artist_name`
-                    FROM `albums` AS `al`
-                    LEFT JOIN `artists` AS `ar`
-                        ON `ar`.`id` = `al`.`artist_id`
-                    ORDER BY `al`.`created_at`
-                    DESC LIMIT 10";
-        $albums = $dbConn->get($sql, \PDO::FETCH_ASSOC);
-
-        $coversBaseUrl = $this->serviceProvider->getConfigService()->getValue('covers.base_url');
-        array_walk($albums, function (&$album, $index) use ($coversBaseUrl) {
-            $album['cover_url'] = sprintf('%s%s/cover_100.webp', $coversBaseUrl, $album['slug']);
-        });
+        $albums = Albums::search($this->serviceProvider, $dbConn, 0, 10);
 
         return new RequestResult(null, [
             'albums' => $albums

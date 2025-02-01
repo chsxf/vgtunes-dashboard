@@ -3,6 +3,7 @@
 namespace PlatformHelpers;
 
 use JsonException;
+use Platform;
 use PlatformAlbum;
 
 final class DeezerPlatformHelper implements IPlatformHelper
@@ -12,9 +13,9 @@ final class DeezerPlatformHelper implements IPlatformHelper
     private const DEEZER_API_TEMPLATE_URL = "https://api.deezer.com/search/album?q={ALBUM_NAME}";
     private const DEEZER_ALBUM_LOOKUP_URL = "https://www.deezer.com/fr/album/{PLATFORM_ID}";
 
-    public function getPlatform(): string
+    public function getPlatform(): Platform
     {
-        return PlatformHelperFactory::DEEZER;
+        return Platform::deezer;
     }
 
     public function getLookUpURL(string $platformId): string

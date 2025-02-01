@@ -6,20 +6,28 @@ use Analytics\TimeFrame;
 use chsxf\MFX\Attributes\PreRouteCallback;
 use chsxf\MFX\Attributes\RequiredRequestMethod;
 use chsxf\MFX\Attributes\Route;
+use chsxf\MFX\DatabaseConnectionInstance;
 use chsxf\MFX\DataValidator;
 use chsxf\MFX\DataValidator\Fields\WithOptions;
 use chsxf\MFX\DataValidator\FieldType;
+use chsxf\MFX\DataValidator\Filters\ExistsInDB;
 use chsxf\MFX\DataValidator\Filters\In;
 use chsxf\MFX\HttpStatusCodes;
 use chsxf\MFX\RequestMethod;
 use chsxf\MFX\RequestResult;
 use chsxf\MFX\Routers\BaseRouteProvider;
+use chsxf\MFX\Services\IConfigService;
 use chsxf\MFX\StringTools;
 use PlatformHelpers\PlatformHelperFactory;
 
 final class Album extends BaseRouteProvider
 {
     private const SESS_ALBUM_DATA = 'album-data';
+
+    private const string FUNCTION = 'function';
+    private const string SAVED_DATA = 'saved_data';
+    private const string NEW_DATA = 'new_data';
+    private const string ALBUM_ID = 'album_id';
 
     private const string QUERY_FIELD = 'q';
     private const string PLATFORM_FIELD = 'platform';
@@ -32,7 +40,7 @@ final class Album extends BaseRouteProvider
     private const string PLATFORM_ID_FIELD = 'platform_id';
     private const string PREVIOUS_SEARCHES = 'previous_searches';
 
-    private const array SEARCH_QUERY_PARAMS = [self::CALLBACK_FIELD => '/Album/add', self::TITLE_PREFIX_FIELD => 'Add New Album'];
+    private const array SEARCH_QUERY_PARAMS_ADD = [self::CALLBACK_FIELD => '/Album/add', self::TITLE_PREFIX_FIELD => 'Add New Album'];
 
     #[Route, RequiredRequestMethod(RequestMethod::GET), RequiredRequestMethod(RequestMethod::POST)]
     public function add(): RequestResult
@@ -43,7 +51,7 @@ final class Album extends BaseRouteProvider
         if ($reqService->getRequestMethod() == RequestMethod::GET) {
             if (!empty($_REQUEST['new'])) {
                 unset($sessionService[self::SESS_ALBUM_DATA]);
-                return RequestResult::buildRedirectRequestResult('/Album/searchPlatform', self::SEARCH_QUERY_PARAMS);
+                return RequestResult::buildRedirectRequestResult('/Album/searchPlatform', self::SEARCH_QUERY_PARAMS_ADD);
             }
         } else if ($reqService->getRequestMethod() == RequestMethod::POST) {
             $validator = self::createSearchResultValidator();
@@ -51,20 +59,22 @@ final class Album extends BaseRouteProvider
                 return RequestResult::buildStatusRequestResult();
             }
 
-            if (isset($sessionService[self::SESS_ALBUM_DATA])) {
+            if (isset($sessionService[self::SESS_ALBUM_DATA]) && $sessionService[self::SESS_ALBUM_DATA][self::FUNCTION] == __FUNCTION__) {
                 $sessionAlbumData = $sessionService[self::SESS_ALBUM_DATA];
                 $sessionAlbumData[self::INSTANCES_FIELD][$validator[self::PLATFORM_FIELD]] = [
                     self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
                     self::TITLE_FIELD => $validator[self::TITLE_FIELD],
                     self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
-                    self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD]
+                    self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
+                    self::SAVED_DATA => false
                 ];
 
-                if ($validator[self::PLATFORM_FIELD] == PlatformHelperFactory::DEEZER) {
+                if ($validator[self::PLATFORM_FIELD] == Platform::deezer->value) {
                     $sessionAlbumData[self::COVER_URL_FIELD] = $validator[self::COVER_URL_FIELD];
                 }
             } else {
                 $sessionAlbumData = [
+                    self::FUNCTION => __FUNCTION__,
                     self::TITLE_FIELD => $validator[self::TITLE_FIELD],
                     self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
                     self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
@@ -73,22 +83,88 @@ final class Album extends BaseRouteProvider
                             self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
                             self::TITLE_FIELD => $validator[self::TITLE_FIELD],
                             self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
-                            self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD]
+                            self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
+                            self::SAVED_DATA => false
                         ]
                     ]
                 ];
             }
 
-            foreach (array_keys(PlatformHelperFactory::PLATFORMS) as $platform) {
-                if (!array_key_exists($platform, $sessionAlbumData[self::INSTANCES_FIELD])) {
+            foreach (Platform::cases() as $platform) {
+                if (!array_key_exists($platform->value, $sessionAlbumData[self::INSTANCES_FIELD])) {
                     $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
-                    $sessionAlbumData[self::INSTANCES_FIELD][$platform] = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTIST_NAME_FIELD]);
+                    $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTIST_NAME_FIELD]);
                 }
             }
 
             $sessionService[self::SESS_ALBUM_DATA] = $sessionAlbumData;
             return RequestResult::buildRedirectRequestResult('/Album/show');
         }
+    }
+
+    #[Route, RequiredRequestMethod(RequestMethod::POST)]
+    public function edit(array $params): RequestResult
+    {
+        $sessionService = $this->serviceProvider->getSessionService();
+
+        $dbService = $this->serviceProvider->getDatabaseService();
+        $dbConn = $dbService->open();
+
+        if (empty($params)) {
+            return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+        }
+
+        $albumId = intval($params[0]);
+        try {
+            $albumDetails = self::getSavedAlbumDetails($dbConn, $this->serviceProvider->getConfigService(), $albumId);
+        } catch (Exception) {
+            return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+        }
+
+        $validator = self::createSearchResultValidator();
+        if (!$validator->validate($_POST)) {
+            return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+        }
+
+        if (
+            isset($sessionService[self::SESS_ALBUM_DATA])
+            && $sessionService[self::SESS_ALBUM_DATA][self::FUNCTION] == __FUNCTION__
+            && !empty($sessionService[self::SESS_ALBUM_DATA][self::ALBUM_ID])
+            && $sessionService[self::SESS_ALBUM_DATA][self::ALBUM_ID] == $albumId
+        ) {
+            $sessionAlbumData = $sessionService[self::SESS_ALBUM_DATA];
+            $sessionAlbumData[self::INSTANCES_FIELD][$validator[self::PLATFORM_FIELD]] = [
+                self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
+                self::TITLE_FIELD => $validator[self::TITLE_FIELD],
+                self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
+                self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
+                self::SAVED_DATA => false
+            ];
+        } else {
+            $sessionAlbumData = [
+                self::FUNCTION => __FUNCTION__,
+                self::ALBUM_ID => $albumId,
+                self::INSTANCES_FIELD => [
+                    $validator[self::PLATFORM_FIELD] => [
+                        self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
+                        self::TITLE_FIELD => $validator[self::TITLE_FIELD],
+                        self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
+                        self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
+                        self::SAVED_DATA => false
+                    ]
+                ]
+            ];
+        }
+
+        $sessionService[self::SESS_ALBUM_DATA] = $sessionAlbumData;
+
+        $redirectUrl = "/Album/show/{$albumId}";
+        return RequestResult::buildRedirectRequestResult($redirectUrl);
+    }
+
+    private static function createEditSearchQueryParams(int $albumId): array
+    {
+        return [self::CALLBACK_FIELD => "/Album/edit/{$albumId}", self::TITLE_PREFIX_FIELD => 'Edit Album'];
     }
 
     #[Route, RequiredRequestMethod(RequestMethod::GET)]
@@ -98,9 +174,9 @@ final class Album extends BaseRouteProvider
         $validator->createField(self::CALLBACK_FIELD, FieldType::HIDDEN, required: false);
         $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::HIDDEN, required: false);
         $validator->createField(self::QUERY_FIELD, FieldType::TEXT, '', extras: ['class' => 'form-control']);
-        $f = $validator->createField(self::PLATFORM_FIELD, FieldType::SELECT, PlatformHelperFactory::DEEZER, required: false, extras: ['class' => 'form-select']);
+        $f = $validator->createField(self::PLATFORM_FIELD, FieldType::SELECT, Platform::deezer->value, required: false, extras: ['class' => 'form-select']);
         if ($f instanceof WithOptions) {
-            $f->addOptions(PlatformHelperFactory::PLATFORMS);
+            $f->addOptions(Platform::PLATFORMS);
         }
 
         $previousSearches = [];
@@ -124,7 +200,8 @@ final class Album extends BaseRouteProvider
                 }
 
                 try {
-                    $platformHelper = PlatformHelperFactory::get($validator[self::PLATFORM_FIELD], $this->serviceProvider);
+                    $platform = Platform::from($validator[self::PLATFORM_FIELD] ?? Platform::deezer->value);
+                    $platformHelper = PlatformHelperFactory::get($platform, $this->serviceProvider);
                     $searchResults = $platformHelper->search($validator[self::QUERY_FIELD]);
 
                     if (!empty($searchResults)) {
@@ -132,7 +209,7 @@ final class Album extends BaseRouteProvider
                         $dbConn = $dbService->open();
 
                         $queryMarks = implode(',', array_pad([], count($searchResults), '?'));
-                        $values = [$platformHelper->getPlatform()];
+                        $values = [$platformHelper->getPlatform()->value];
                         foreach ($searchResults as $result) {
                             $values[] = $result->platform_id;
                         }
@@ -181,7 +258,7 @@ final class Album extends BaseRouteProvider
     {
         $validator = new DataValidator();
         $validator->createField(self::PLATFORM_FIELD, FieldType::HIDDEN, $platform)
-            ->addFilter(new In(array_keys(PlatformHelperFactory::PLATFORMS)));
+            ->addFilter(new In(array_keys(Platform::PLATFORMS)));
         $validator->createField(self::TITLE_FIELD, FieldType::HIDDEN);
         $validator->createField(self::ARTIST_NAME_FIELD, FieldType::HIDDEN);
         $validator->createField(self::COVER_URL_FIELD, FieldType::HIDDEN, required: false);
@@ -192,11 +269,33 @@ final class Album extends BaseRouteProvider
     private static function createPreviousSearchValidator(DataValidator $sourceValidator, string $query): DataValidator
     {
         $validator = new DataValidator();
-        $validator->createField(self::PLATFORM_FIELD, FieldType::HIDDEN, $sourceValidator[self::PLATFORM_FIELD] ?? PlatformHelperFactory::DEEZER);
+        $validator->createField(self::PLATFORM_FIELD, FieldType::HIDDEN, $sourceValidator[self::PLATFORM_FIELD] ?? Platform::deezer->value);
         $validator->createField(self::CALLBACK_FIELD, FieldType::HIDDEN, $sourceValidator[self::CALLBACK_FIELD], required: false);
         $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::HIDDEN, $sourceValidator[self::TITLE_PREFIX_FIELD], required: false);
         $validator->createField(self::QUERY_FIELD, FieldType::HIDDEN, $query);
         return $validator;
+    }
+
+    private static function getSavedAlbumDetails(DatabaseConnectionInstance $dbConn, IConfigService $configService, int $albumId): array
+    {
+        $sql = "SELECT `al`.*, `ar`.`name` AS `artist_name`
+                            FROM `albums` AS `al`
+                            LEFT JOIN `artists` AS `ar`
+                                ON `al`.`artist_id` = `ar`.`id`
+                            WHERE `al`.`id` = ?";
+        if (($albumRow = $dbConn->getRow($sql, \PDO::FETCH_ASSOC, $albumId)) === false) {
+            throw new Exception('An error has occured while querying the database', E_USER_ERROR);
+        }
+
+        $sql = "SELECT `platform`, `platform_id` FROM `album_instances` WHERE `album_id` = ?";
+        if (($instances = $dbConn->getIndexed($sql, self::PLATFORM_FIELD, \PDO::FETCH_ASSOC, $albumId)) === false) {
+            throw new Exception('An error has occured while querying the database', E_USER_ERROR);
+        }
+
+        $albumDetails = $albumRow;
+        $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_500.webp", $configService->getValue('covers.base_url'), $albumRow['slug']);
+        $albumDetails[self::INSTANCES_FIELD] = array_map(fn($instance) => array_merge($instance, [self::SAVED_DATA => true]), $instances);
+        return $albumDetails;
     }
 
     #[Route, RequiredRequestMethod(RequestMethod::GET), PreRouteCallback('GlobalCallbacks::googleChartsPreRouteCallback')]
@@ -208,50 +307,46 @@ final class Album extends BaseRouteProvider
 
         $albumDetails = null;
         if ($isSavedAlbum) {
-            $albumId = $params[0];
+            $albumId = intval($params[0]);
 
             $dbService = $this->serviceProvider->getDatabaseService();
             $dbConn = $dbService->open();
 
             try {
-                $sql = "SELECT `al`.*, `ar`.`name` AS `artist_name`
-                            FROM `albums` AS `al`
-                            LEFT JOIN `artists` AS `ar`
-                                ON `al`.`artist_id` = `ar`.`id`
-                            WHERE `al`.`id` = ?";
-                if (($albumRow = $dbConn->getRow($sql, \PDO::FETCH_ASSOC, $albumId)) === false) {
-                    throw new Exception('An error has occured while querying the database', E_USER_ERROR);
-                }
-
-                $sql = "SELECT `platform`, `platform_id` FROM `album_instances` WHERE `album_id` = ?";
-                if (($instances = $dbConn->getIndexed($sql, self::PLATFORM_FIELD, \PDO::FETCH_ASSOC, $albumId)) === false) {
-                    throw new Exception('An error has occured while querying the database', E_USER_ERROR);
-                }
-
-                $albumDetails = $albumRow;
-                $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_500.webp", $this->serviceProvider->getConfigService()->getValue('covers.base_url'), $albumRow['slug']);
-                $albumDetails[self::INSTANCES_FIELD] = $instances;
+                $albumDetails = self::getSavedAlbumDetails($dbConn, $this->serviceProvider->getConfigService(), $albumId);
             } catch (Exception) {
             }
-        } else if (isset($sessionService[self::SESS_ALBUM_DATA])) {
-            $albumDetails = $sessionService[self::SESS_ALBUM_DATA];
         }
 
-        if ($albumDetails === false) {
+        $albumDetails[self::NEW_DATA] = false;
+        if (isset($sessionService[self::SESS_ALBUM_DATA])) {
+            $sessData = $sessionService[self::SESS_ALBUM_DATA];
+            if ($sessData[self::FUNCTION] == 'add' && !$isSavedAlbum) {
+                $albumDetails = $sessionService[self::SESS_ALBUM_DATA];
+            } else if ($sessData[self::FUNCTION] == 'edit' && $sessData[self::ALBUM_ID] == $albumId) {
+                $albumDetails[self::INSTANCES_FIELD] = array_merge($albumDetails[self::INSTANCES_FIELD], $sessData[self::INSTANCES_FIELD]);
+                $albumDetails[self::NEW_DATA] = true;
+            }
+        }
+
+        if (empty($albumDetails)) {
             return RequestResult::buildStatusRequestResult();
         }
 
         array_walk($albumDetails[self::INSTANCES_FIELD], function (&$instance, $platform) {
             if (!empty($instance[self::PLATFORM_ID_FIELD])) {
-                $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
+                $platformEnum = Platform::from($platform);
+                $helper = PlatformHelperFactory::get($platformEnum, $this->serviceProvider);
                 $instance['url'] = $helper->getLookUpURL($instance[self::PLATFORM_ID_FIELD]);
             }
         });
 
         $requestResultData = [
+            'is_new' => !$isSavedAlbum,
             'album_details' => $albumDetails,
-            'platforms' => PlatformHelperFactory::PLATFORMS,
-            'search_query_params' => self::SEARCH_QUERY_PARAMS
+            'platforms' => Platform::PLATFORMS,
+            'search_query_params' => $isSavedAlbum ? self::createEditSearchQueryParams($albumId) : self::SEARCH_QUERY_PARAMS_ADD,
+            'commit_url' => $isSavedAlbum ? "/Album/commit/{$albumId}" : "/Album/commit"
         ];
 
         $analyticsConfig = $this->serviceProvider->getConfigService()->getValue('analytics');
@@ -283,7 +378,7 @@ final class Album extends BaseRouteProvider
     }
 
     #[Route, RequiredRequestMethod(RequestMethod::POST)]
-    public function commit(): RequestResult
+    public function commit(array $params): RequestResult
     {
         $sessionService = $this->serviceProvider->getSessionService();
         if (!isset($sessionService[self::SESS_ALBUM_DATA])) {
@@ -298,74 +393,99 @@ final class Album extends BaseRouteProvider
         try {
             $sessionAlbumData = $sessionService[self::SESS_ALBUM_DATA];
 
-            $hasAtLeastOnePlatformId = false;
-            foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
-                if (!empty($instanceData)) {
-                    $hasAtLeastOnePlatformId = true;
-                    break;
-                }
-            }
-            if (!$hasAtLeastOnePlatformId) {
-                throw new Exception('At least one platform ID must be filled in');
-            }
-
-            $sql = "SELECT `id` FROM `artists` WHERE `name` = ?";
-            if (($artistId = $dbConn->getValue($sql, $sessionAlbumData[self::ARTIST_NAME_FIELD])) === false) {
-                $sql = "INSERT INTO `artists` (`name`) VALUE (?)";
-                if ($dbConn->exec($sql, $sessionAlbumData[self::ARTIST_NAME_FIELD]) === false) {
-                    throw new Exception('A database error has occured');
-                }
-                $artistId = $dbConn->lastInsertId();
-            }
-
-            $slug = null;
-            while ($slug === null) {
-                $candidateSlug = StringTools::generateRandomString(8, StringTools::CHARSET_ALPHANUMERIC_LC);
-                $sql = 'SELECT COUNT(`id`) FROM `albums` WHERE `slug` = ?';
-                $count = $dbConn->getValue($sql, $candidateSlug);
-                if ($count === false || $count === null) {
-                    throw new Exception('A database error has occured');
-                }
-
-                if ($count == 0) {
-                    $slug = $candidateSlug;
-                }
-            }
-
-            $sql = 'INSERT INTO `albums` (`slug`, `title`, `artist_id`) VALUE (?, ?, ?)';
-            if (!$dbConn->exec($sql, $slug, $sessionAlbumData[self::TITLE_FIELD], $artistId)) {
-                throw new Exception('A database error has occured');
-            }
-            $albumId = $dbConn->lastInsertId();
-
-            foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
-                if (!empty($instanceData)) {
-                    $sql = 'INSERT INTO `album_instances` VALUE (?, ?, ?)';
-                    if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD])) {
-                        throw new Exception('A database error has occured');
+            if ($sessionAlbumData[self::FUNCTION] == 'add') {
+                $hasAtLeastOnePlatformId = false;
+                foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
+                    if (!empty($instanceData)) {
+                        $hasAtLeastOnePlatformId = true;
+                        break;
                     }
                 }
-            }
-
-            $coverSizes = CoverProcessor::getProcessedCovers($sessionAlbumData[self::COVER_URL_FIELD]);
-            $outputPath = $this->serviceProvider->getConfigService()->getValue('covers.output_path');
-            $outputPath .= "/{$slug}";
-            if (mkdir($outputPath, 0770, true) === false) {
-                throw new Exception('Unable to create the covers folder');
-            }
-            foreach ($coverSizes as $size => $coverImage) {
-                $ext = is_int($size) ? 'webp' : 'jpg';
-                $filePath = "{$outputPath}/cover_{$size}.{$ext}";
-                if (file_put_contents($filePath, $coverImage) === false) {
-                    throw new Exception('Unable to write cover file');
+                if (!$hasAtLeastOnePlatformId) {
+                    throw new Exception('At least one platform ID must be filled in');
                 }
+
+                $sql = "SELECT `id` FROM `artists` WHERE `name` = ?";
+                if (($artistId = $dbConn->getValue($sql, $sessionAlbumData[self::ARTIST_NAME_FIELD])) === false) {
+                    $sql = "INSERT INTO `artists` (`name`) VALUE (?)";
+                    if ($dbConn->exec($sql, $sessionAlbumData[self::ARTIST_NAME_FIELD]) === false) {
+                        throw new Exception('A database error has occured');
+                    }
+                    $artistId = $dbConn->lastInsertId();
+                }
+
+                $slug = null;
+                while ($slug === null) {
+                    $candidateSlug = StringTools::generateRandomString(8, StringTools::CHARSET_ALPHANUMERIC_LC);
+                    $sql = 'SELECT COUNT(`id`) FROM `albums` WHERE `slug` = ?';
+                    $count = $dbConn->getValue($sql, $candidateSlug);
+                    if ($count === false || $count === null) {
+                        throw new Exception('A database error has occured');
+                    }
+
+                    if ($count == 0) {
+                        $slug = $candidateSlug;
+                    }
+                }
+
+                $sql = 'INSERT INTO `albums` (`slug`, `title`, `artist_id`) VALUE (?, ?, ?)';
+                if (!$dbConn->exec($sql, $slug, $sessionAlbumData[self::TITLE_FIELD], $artistId)) {
+                    throw new Exception('A database error has occured');
+                }
+                $albumId = $dbConn->lastInsertId();
+
+                foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
+                    if (!empty($instanceData)) {
+                        $sql = 'INSERT INTO `album_instances` VALUE (?, ?, ?)';
+                        if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD])) {
+                            throw new Exception('A database error has occured');
+                        }
+                    }
+                }
+
+                $coverSizes = CoverProcessor::getProcessedCovers($sessionAlbumData[self::COVER_URL_FIELD]);
+                $outputPath = $this->serviceProvider->getConfigService()->getValue('covers.output_path');
+                $outputPath .= "/{$slug}";
+                if (mkdir($outputPath, 0770, true) === false) {
+                    throw new Exception('Unable to create the covers folder');
+                }
+                foreach ($coverSizes as $size => $coverImage) {
+                    $ext = is_int($size) ? 'webp' : 'jpg';
+                    $filePath = "{$outputPath}/cover_{$size}.{$ext}";
+                    if (file_put_contents($filePath, $coverImage) === false) {
+                        throw new Exception('Unable to write cover file');
+                    }
+                }
+
+                trigger_notif("The album has been successfully added with the slug '{$slug}'");
+            } else if ($sessionAlbumData[self::FUNCTION] == 'edit') {
+                $validator = new DataValidator();
+                $validator->createField('0', FieldType::POSITIVE_INTEGER)
+                    ->addFilter(new ExistsInDB('albums', 'id', $dbConn));
+
+                if (empty($params) || !$validator->validate($params, silent: true)) {
+                    throw new Exception("Missing or invalid album Id");
+                }
+
+                $albumId = $validator['0'];
+                if ($sessionAlbumData[self::ALBUM_ID] != $albumId) {
+                    throw new Exception("Inconsistent album Id");
+                }
+
+                foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
+                    if (!empty($instanceData) && $instanceData[self::SAVED_DATA] === false) {
+                        $sql = 'INSERT INTO `album_instances` VALUE (?, ?, ?)';
+                        if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD])) {
+                            throw new Exception('A database error has occured');
+                        }
+                    }
+                }
+
+                trigger_notif("The album has been successfully edited");
             }
 
             $dbConn->commit();
-
             unset($sessionService[self::SESS_ALBUM_DATA]);
-
-            trigger_notif("The album has been successfully added with the slug '{$slug}'");
             return RequestResult::buildRedirectRequestResult("/Album/show/{$albumId}");
         } catch (Exception $e) {
             $dbConn->rollBack();

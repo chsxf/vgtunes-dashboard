@@ -2,7 +2,7 @@
 
 {% block page_title %}
 	Album Details
-	{% if album_details.slug is not defined %}
+	{% if is_new %}
 		<span class="text-warning">(Preview)</span>
 	{% endif %}
 {% endblock %}
@@ -25,9 +25,12 @@
 						{{ platform_name }}
 					</div>
 
-					<div class="col-4 text-secondary">
+					<div class="col-6 text-secondary">
 						{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null %}
-							{% with { platform_details: album_details.instances[platform] } only %}
+							{% with { platform_details: album_details.instances[platform] } %}
+							{% if (is_new == false) and (platform_details.saved_data == false) %}
+								<span class="text-warning">(Preview)</span><br/>
+							{% endif %}
 							{{ platform_details.platform_id }}
 							{% if platform_details.title is defined %}
 								<div class="row">
@@ -62,7 +65,7 @@
 					</div>
 				</div>
 			{% endfor %}
-			{% if album_details.slug is defined %}
+			{% if is_new == false %}
 				<hr/>
 				<div class="row">
 					<div class="col-1 text-end">Slug</div>
@@ -88,17 +91,20 @@
 			{% endif %}
 			<hr/>
 			<div class="row">
-				<div class="col-auto">
-					{% if album_details.slug is defined %}
+				{% if album_details.slug is defined %}
+					<div class="col-auto">
 						<form action="/Album/remove" method="post">
 							<button class="btn btn-danger" disabled>Remove</button>
 						</form>
-					{% else %}
-						<form action="/Album/commit" method="post">
+					</div>
+				{% endif %}
+				{% if album_details.slug is not defined or album_details.new_data %}
+					<div class="col-auto">
+						<form action="{{ album_details.new_data ? '/Album/commit/%d'|format(album_details.id) : '/Album/commit' }}" method="post">
 							<button class="btn btn-warning">Commit</button>
 						</form>
-					{% endif %}
-				</div>
+					</div>
+				{% endif %}
 			</div>
 		</div>
 	</div>

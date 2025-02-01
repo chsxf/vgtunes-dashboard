@@ -63,3 +63,9 @@ ALTER TABLE `spotify_access_tokens`
 
 ALTER TABLE `albums`
     CHANGE `name` `title` TINYTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;
+
+-- [VERSION: 7]
+
+ALTER TABLE `album_instances`
+    CHANGE `platform_id` `platform_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+    CHANGE `platform` `platform` ENUM('apple_music','deezer','spotify','bandcamp') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;

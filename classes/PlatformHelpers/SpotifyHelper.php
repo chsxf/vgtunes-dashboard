@@ -6,6 +6,7 @@ use chsxf\MFX\Services\IAuthenticationService;
 use chsxf\MFX\Services\IConfigService;
 use chsxf\MFX\Services\IDatabaseService;
 use JsonException;
+use Platform;
 use PlatformAlbum;
 
 final class SpotifyHelper implements IPlatformHelper
@@ -16,9 +17,9 @@ final class SpotifyHelper implements IPlatformHelper
 
     public function __construct(private IConfigService $configService, private IDatabaseService $databaseService, private IAuthenticationService $authService) {}
 
-    public function getPlatform(): string
+    public function getPlatform(): Platform
     {
-        return PlatformHelperFactory::SPOTIFY;
+        return Platform::spotify;
     }
 
     public function getLookUpURL(string $platformId): string

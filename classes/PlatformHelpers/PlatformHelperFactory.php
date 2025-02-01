@@ -2,32 +2,24 @@
 
 namespace PlatformHelpers;
 
-use chsxf\MFX\Services\IConfigService;
 use chsxf\MFX\Services\ICoreServiceProvider;
+use Platform;
 
 final class PlatformHelperFactory
 {
-    public const APPLE_MUSIC = 'apple_music';
-    public const DEEZER = 'deezer';
-    public const SPOTIFY = 'spotify';
-
-    public const array PLATFORMS = [
-        self::APPLE_MUSIC => 'Apple Music',
-        self::DEEZER => 'Deezer',
-        self::SPOTIFY => 'Spotify'
-    ];
-
-    public static function get(string $platform, ICoreServiceProvider $serviceProvider): ?IPlatformHelper
+    public static function get(Platform $platform, ICoreServiceProvider $serviceProvider): ?IPlatformHelper
     {
         switch ($platform) {
-            case self::APPLE_MUSIC:
+            case Platform::appleMusic:
                 return new AppleMusicHelper($serviceProvider->getConfigService());
-            case self::DEEZER:
+            case Platform::bandcamp:
+                return new BandcampPlatformHelper();
+            case Platform::deezer:
                 return new DeezerPlatformHelper();
-            case self::SPOTIFY:
+            case Platform::spotify:
                 return new SpotifyHelper($serviceProvider->getConfigService(), $serviceProvider->getDatabaseService(), $serviceProvider->getAuthenticationService());
             default:
-                throw new PlatformHelperException("Unsupported platform '{$platform}'");
+                throw new PlatformHelperException("Unsupported platform '{$platform->value}'");
         }
     }
 }

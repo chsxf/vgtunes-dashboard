@@ -9,6 +9,7 @@ use Jose\Component\Signature\Algorithm\ES256;
 use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\Serializer\CompactSerializer;
 use JsonException;
+use Platform;
 use PlatformAlbum;
 
 final class AppleMusicHelper implements IPlatformHelper
@@ -19,9 +20,9 @@ final class AppleMusicHelper implements IPlatformHelper
 
     public function __construct(private IConfigService $configService) {}
 
-    public function getPlatform(): string
+    public function getPlatform(): Platform
     {
-        return PlatformHelperFactory::APPLE_MUSIC;
+        return Platform::appleMusic;
     }
 
     public function getLookUpURL(string $platformId): string
