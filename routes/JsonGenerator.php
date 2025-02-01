@@ -41,6 +41,8 @@ final class JsonGenerator extends BaseRouteProvider
             $result[$instance['album_id']]['instances'][$instance['platform']] = $instance['platform_id'];
         }
 
+        $this->serviceProvider->getRequestService()->setAttachmentHeaders('dashboard-export.json', 'application/json');
+
         $result = array_values($result);
         $result = array_map(function ($item) {
             unset($item['id']);
