@@ -318,7 +318,6 @@ final class Album extends BaseRouteProvider
             }
         }
 
-        $albumDetails[self::NEW_DATA] = false;
         if (isset($sessionService[self::SESS_ALBUM_DATA])) {
             $sessData = $sessionService[self::SESS_ALBUM_DATA];
             if ($sessData[self::FUNCTION] == 'add' && !$isSavedAlbum) {
@@ -328,6 +327,7 @@ final class Album extends BaseRouteProvider
                 $albumDetails[self::NEW_DATA] = true;
             }
         }
+        $albumDetails[self::NEW_DATA] ??= false;
 
         if (empty($albumDetails)) {
             return RequestResult::buildStatusRequestResult();
