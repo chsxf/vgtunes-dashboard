@@ -20,3 +20,8 @@ main {
     overflow-y: auto;
     overflow-x: hidden;
 }
+
+.log-container {
+    white-space: pre;
+    overflow-y: auto;
+}

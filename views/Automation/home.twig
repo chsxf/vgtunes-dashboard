@@ -1,0 +1,16 @@
+{% extends "root.twig" %}
+
+{% block page_title "Automation" %}
+
+{% block page_content %}
+	{{ parent() }}
+
+	<form method="post" action="/Automation/execute" class="row g-3 mb-3">
+		<div class="col-6">
+			{% dv_field validator 'action' %}
+		</div>
+		<div class="col-6">
+			<button type="submit" class="btn btn-primary">Execute Action</button>
+		</div>
+	</form>
+{% endblock %}

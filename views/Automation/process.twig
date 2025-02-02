@@ -1,0 +1,16 @@
+{% extends "root.twig" %}
+
+{% block page_title "Automation - Processing..." %}
+
+{% block page_content %}
+	{{ parent() }}
+
+	<p>Action:
+		{{ action_class }}</p>
+
+	<div class="progress d-flex" role="progressbar" aria-label="Action Progress" style="min-height: 16px">
+		<div class="progress-bar" id="automation-progress"></div>
+	</div>
+
+	<div class="rounded border border-secondary font-monospace p-3 mt-3 log-container" id="automation-log"></div>
+{% endblock %}
