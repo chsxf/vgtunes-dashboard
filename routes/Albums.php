@@ -67,7 +67,7 @@ final class Albums extends BaseRouteProvider implements IPaginationProvider
             return RequestResult::buildRedirectRequestResult('/');
         }
 
-        return new RequestResult(data: ['albums' => $albums, 'pm' => $pageManager]);
+        return new RequestResult(data: ['albums' => $albums, 'pm' => $pageManager, 'frontend_base_url' => $this->serviceProvider->getConfigService()->getValue('frontend.base_url')]);
     }
 
     public static function search(ICoreServiceProvider $coreServiceProvider, DatabaseConnectionInstance $dbConn, int $start, int $count, ?string $query = null): array

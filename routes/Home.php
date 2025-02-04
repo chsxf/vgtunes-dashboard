@@ -71,7 +71,8 @@ class Home extends BaseRouteProvider
         $albums = Albums::search($this->serviceProvider, $dbConn, 0, 10);
 
         return new RequestResult(null, [
-            'albums' => $albums
+            'albums' => $albums,
+            'frontend_base_url' => $this->serviceProvider->getConfigService()->getValue('frontend.base_url')
         ]);
     }
 }

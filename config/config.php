@@ -49,6 +49,10 @@ return new Config([
         ]
     ],
 
+    'frontend' => [
+        'base_url' => $secrets['FRONTEND_BASE_URL']
+    ],
+
     'spotify' => [
         'client_id' => $secrets['SPOTIFY_CLIENT_ID'],
         'client_secret' => $secrets['SPOTIFY_CLIENT_SECRET']
