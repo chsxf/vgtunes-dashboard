@@ -33,15 +33,13 @@ function onRequestEnds(e) {
   } catch (e) {
     console.log(e);
     pushLog(
-      `An error has occured while parsing request response:\n${e.target.responseText}`,
+      `An error has occured while parsing request response:\n${e.target.responseText}\nError:\n${e}`,
       "e"
     );
   }
 }
 
 function pushLog(logMsg, logType) {
-  console.log(logMsg, logType);
-
   let textClass = undefined;
   switch (logType) {
     case "d":
