@@ -407,8 +407,22 @@ final class Album extends BaseRouteProvider
 
                 $sql = "SELECT `id` FROM `artists` WHERE `name` = ?";
                 if (($artistId = $dbConn->getValue($sql, $sessionAlbumData[self::ARTIST_NAME_FIELD])) === false) {
-                    $sql = "INSERT INTO `artists` (`name`) VALUE (?)";
-                    if ($dbConn->exec($sql, $sessionAlbumData[self::ARTIST_NAME_FIELD]) === false) {
+                    $slug = null;
+                    while ($slug === null) {
+                        $candidateSlug = StringTools::generateRandomString(8);
+                        $sql = 'SELECT COUNT(`id`) FROM `artists` WHERE `slug` = ?';
+                        $count = $dbConn->getValue($sql, $candidateSlug);
+                        if ($count === false || $count === null) {
+                            throw new Exception("A database error has occured");
+                        }
+
+                        if ($count == 0) {
+                            $slug = $candidateSlug;
+                        }
+                    }
+
+                    $sql = "INSERT INTO `artists` (`name`, `slug`) VALUE (?, ?)";
+                    if ($dbConn->exec($sql, $sessionAlbumData[self::ARTIST_NAME_FIELD], $slug) === false) {
                         throw new Exception('A database error has occured');
                     }
                     $artistId = $dbConn->lastInsertId();

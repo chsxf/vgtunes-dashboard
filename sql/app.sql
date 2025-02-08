@@ -69,3 +69,15 @@ ALTER TABLE `albums`
 ALTER TABLE `album_instances`
     CHANGE `platform_id` `platform_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
     CHANGE `platform` `platform` ENUM('apple_music','deezer','spotify','bandcamp') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;
+
+-- [VERSION: 8]
+
+ALTER TABLE `artists`
+    ADD `slug` CHAR(8) NULL DEFAULT NULL AFTER `name`;
+
+UPDATE `artists`
+    SET `slug` = SUBSTR(SHA1(CONCAT('random-slug-from-id', `id`)), 1, 8);
+
+ALTER TABLE `artists`
+    CHANGE `slug` `slug` CHAR(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+    ADD UNIQUE (`slug`(4)) USING BTREE;
