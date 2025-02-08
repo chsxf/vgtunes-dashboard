@@ -54,9 +54,10 @@ final class JsonGenerator extends BaseRouteProvider
             $this->serviceProvider->getRequestService()->setAttachmentHeaders('dashboard-export.json', 'application/json');
         }
 
-        return RequestResult::buildJSONRequestResult([
+        $result = [
             'albums' => array_values($albums),
             'artists' => $remappedArtists
-        ]);
+        ];
+        return RequestResult::buildJSONRequestResult(json_encode($result), true);
     }
 }
