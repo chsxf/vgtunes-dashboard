@@ -19,7 +19,7 @@ final class FeaturedAlbums extends BaseRouteProvider
     {
         $dbConn = $this->serviceProvider->getDatabaseService()->open();
 
-        $sql = "SELECT `fa`.`id`, `al`.`title`, `al`.`slug`, `ar`.`name`
+        $sql = "SELECT `al`.`id`, `al`.`title`, `al`.`slug`, `ar`.`name` AS `artist_name`
                     FROM `featured_albums` AS `fa`
                     LEFT JOIN `albums` AS `al`
                         ON `fa`.`album_id` = `al`.`id`
@@ -31,8 +31,34 @@ final class FeaturedAlbums extends BaseRouteProvider
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
         }
 
+        $featuredAlbums = array_map(function ($album) {
+            $album['cover_url'] = sprintf("%s%s/cover_500.webp", $this->serviceProvider->getConfigService()->getValue('covers.base_url'), $album['slug']);
+            return $album;
+        }, $featuredAlbums);
+
+        $albumIds = array_map(fn($album) => $album['id'], $featuredAlbums);
+        $marks = implode(',', array_pad([], count($albumIds), '?'));
+        $sql = "SELECT `album_id`, `platform` FROM `album_instances` WHERE `album_id` IN ({$marks})";
+        if (($albumPlatforms = $dbConn->get($sql, \PDO::FETCH_NUM, $albumIds)) === false) {
+            trigger_error('An error has occured while recovering featured albums');
+            return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
+        }
+        $platformsByAlbum = [];
+        foreach ($albumPlatforms as $albumPlatform) {
+            list($albumId, $platform) = $albumPlatform;
+            if (!array_key_exists($albumId, $platformsByAlbum)) {
+                $platformsByAlbum[$albumId] = [];
+            }
+            $platformsByAlbum[$albumId][] = $platform;
+        }
+        $featuredAlbums = array_map(function ($album) use ($platformsByAlbum) {
+            $album['platforms'] = $platformsByAlbum[$album['id']];
+            return $album;
+        }, $featuredAlbums);
+
         return new RequestResult(data: [
-            'featured_albums' => $featuredAlbums
+            'featured_albums' => $featuredAlbums,
+            'frontend_base_url' => $this->serviceProvider->getConfigService()->getValue('frontend.base_url')
         ]);
     }
 
