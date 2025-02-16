@@ -31,30 +31,32 @@ final class FeaturedAlbums extends BaseRouteProvider
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
         }
 
-        $featuredAlbums = array_map(function ($album) {
-            $album['cover_url'] = sprintf("%s%s/cover_500.webp", $this->serviceProvider->getConfigService()->getValue('covers.base_url'), $album['slug']);
-            return $album;
-        }, $featuredAlbums);
+        if (!empty($featuredAlbums)) {
+            $featuredAlbums = array_map(function ($album) {
+                $album['cover_url'] = sprintf("%s%s/cover_500.webp", $this->serviceProvider->getConfigService()->getValue('covers.base_url'), $album['slug']);
+                return $album;
+            }, $featuredAlbums);
 
-        $albumIds = array_map(fn($album) => $album['id'], $featuredAlbums);
-        $marks = implode(',', array_pad([], count($albumIds), '?'));
-        $sql = "SELECT `album_id`, `platform` FROM `album_instances` WHERE `album_id` IN ({$marks})";
-        if (($albumPlatforms = $dbConn->get($sql, \PDO::FETCH_NUM, $albumIds)) === false) {
-            trigger_error('An error has occured while recovering featured albums');
-            return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
-        }
-        $platformsByAlbum = [];
-        foreach ($albumPlatforms as $albumPlatform) {
-            list($albumId, $platform) = $albumPlatform;
-            if (!array_key_exists($albumId, $platformsByAlbum)) {
-                $platformsByAlbum[$albumId] = [];
+            $albumIds = array_map(fn($album) => $album['id'], $featuredAlbums);
+            $marks = implode(',', array_pad([], count($albumIds), '?'));
+            $sql = "SELECT `album_id`, `platform` FROM `album_instances` WHERE `album_id` IN ({$marks})";
+            if (($albumPlatforms = $dbConn->get($sql, \PDO::FETCH_NUM, $albumIds)) === false) {
+                trigger_error('An error has occured while recovering featured albums');
+                return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
             }
-            $platformsByAlbum[$albumId][] = $platform;
+            $platformsByAlbum = [];
+            foreach ($albumPlatforms as $albumPlatform) {
+                list($albumId, $platform) = $albumPlatform;
+                if (!array_key_exists($albumId, $platformsByAlbum)) {
+                    $platformsByAlbum[$albumId] = [];
+                }
+                $platformsByAlbum[$albumId][] = $platform;
+            }
+            $featuredAlbums = array_map(function ($album) use ($platformsByAlbum) {
+                $album['platforms'] = $platformsByAlbum[$album['id']];
+                return $album;
+            }, $featuredAlbums);
         }
-        $featuredAlbums = array_map(function ($album) use ($platformsByAlbum) {
-            $album['platforms'] = $platformsByAlbum[$album['id']];
-            return $album;
-        }, $featuredAlbums);
 
         return new RequestResult(data: [
             'featured_albums' => $featuredAlbums,
