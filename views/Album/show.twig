@@ -67,9 +67,18 @@
 			{% endfor %}
 			{% if is_new == false %}
 				<hr/>
-				<div class="row">
+				<div class="row mb-3">
 					<div class="col-1 text-end">Slug</div>
 					<div class="col-2 text-secondary">{{ album_details.slug }}</div>
+				</div>
+				<div class="row mb-3">
+					<div class="col-1 text-end">Last Featured</div>
+					<div class="col-2 text-secondary">
+						{% if album_details.last_featured is null %}-
+						{% else %}
+							{{ album_details.last_featured|date('m/d/Y H:i:s') }}
+						{% endif %}
+					</div>
 				</div>
 			{% endif %}
 			{% if analytics is defined %}
@@ -93,8 +102,8 @@
 			<div class="row">
 				{% if album_details.slug is defined %}
 					<div class="col-auto">
-						<form action="/Album/remove" method="post">
-							<button class="btn btn-danger" disabled>Remove</button>
+						<form action="/FeaturedAlbums/feature/{{ album_details.id }}" method="post">
+							<button class="btn btn-success">Feature</button>
 						</form>
 					</div>
 				{% endif %}

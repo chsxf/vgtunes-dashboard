@@ -38,6 +38,8 @@ final class Album extends BaseRouteProvider
     private const string COVER_URL_FIELD = 'cover_url';
     private const string INSTANCES_FIELD = 'instances';
     private const string PLATFORM_ID_FIELD = 'platform_id';
+    private const string LAST_FEATURED_FIELD = 'last_featured';
+
     private const string PREVIOUS_SEARCHES = 'previous_searches';
 
     private const array SEARCH_QUERY_PARAMS_ADD = [self::CALLBACK_FIELD => '/Album/add', self::TITLE_PREFIX_FIELD => 'Add New Album'];
@@ -284,17 +286,23 @@ final class Album extends BaseRouteProvider
                                 ON `al`.`artist_id` = `ar`.`id`
                             WHERE `al`.`id` = ?";
         if (($albumRow = $dbConn->getRow($sql, \PDO::FETCH_ASSOC, $albumId)) === false) {
-            throw new Exception('An error has occured while querying the database', E_USER_ERROR);
+            throw new Exception('An error has occured while querying album details', E_USER_ERROR);
         }
 
         $sql = "SELECT `platform`, `platform_id` FROM `album_instances` WHERE `album_id` = ?";
         if (($instances = $dbConn->getIndexed($sql, self::PLATFORM_FIELD, \PDO::FETCH_ASSOC, $albumId)) === false) {
-            throw new Exception('An error has occured while querying the database', E_USER_ERROR);
+            throw new Exception("An error has occured while querying album's instances", E_USER_ERROR);
+        }
+
+        $sql = "SELECT MAX(`featured_at`) FROM `featured_albums` WHERE `album_id` = ?";
+        if (($lastFeatured = $dbConn->getValue($sql, $albumId)) === false) {
+            throw new Exception("An error has occured while querying album's last feature timestamp", E_USER_ERROR);
         }
 
         $albumDetails = $albumRow;
         $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_500.webp", $configService->getValue('covers.base_url'), $albumRow['slug']);
         $albumDetails[self::INSTANCES_FIELD] = array_map(fn($instance) => array_merge($instance, [self::SAVED_DATA => true]), $instances);
+        $albumDetails[self::LAST_FEATURED_FIELD] = $lastFeatured;
         return $albumDetails;
     }
 
