@@ -81,3 +81,16 @@ UPDATE `artists`
 ALTER TABLE `artists`
     CHANGE `slug` `slug` CHAR(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
     ADD UNIQUE (`slug`(4)) USING BTREE;
+
+-- [VERSION: 9]
+
+CREATE TABLE `featured_albums` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `album_id` INT UNSIGNED NOT NULL,
+    `featured_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX (`album_id`)
+) ENGINE = InnoDB;
+
+ALTER TABLE `featured_albums`
+    ADD CONSTRAINT `featured_albums_ibfk_1` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

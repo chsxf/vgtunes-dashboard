@@ -1,0 +1,29 @@
+{% extends 'root.twig' %}
+
+{% block page_title "Featured Albums" %}
+
+{% block page_content %}
+	{{ parent() }}
+
+	<table class="table table-striped">
+		<thead>
+			<th scope="col">&nbsp;</th>
+			<th scope="col">Id</th>
+			<th scope="col">Title</th>
+			<th scope="col">Artist</th>
+			<th scope="col">Platforms</th>
+			<th scope="col">&nbsp;</th>
+		</thead>
+		<tbody>
+			{% for album in featured_albums %}
+				{{ include('Albums/album-row.twig') }}
+			{% else %}
+				<tr>
+					<td colspan="6" class="text-secondary">
+						No featured album found :(
+					</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+{% endblock %}
