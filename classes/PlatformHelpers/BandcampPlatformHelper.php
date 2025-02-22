@@ -62,6 +62,7 @@ final class BandcampPlatformHelper implements IPlatformHelper
 
             $url = parse_url($album['img']);
             $filename = basename($url['path']);
+            $filename = preg_replace('/_\d+\.jpg$/', '_20.jpg', $filename);
             $pathWoFilename = dirname($url['path']);
             $newPath = "{$pathWoFilename}/a{$filename}";
             $imgUrl = "{$url['scheme']}://{$url['host']}{$newPath}";
