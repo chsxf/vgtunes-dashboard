@@ -5,12 +5,26 @@
 {% block page_content %}
 	{{ parent() }}
 
-	<form method="post" action="/Automation/execute" class="row g-3 mb-3">
-		<div class="col-6">
-			{% dv_field validator 'action' %}
-		</div>
-		<div class="col-6">
+	<div class="row">
+		<form method="post" action="/Automation/execute">
+			<div class="mb-3">
+				<label for="action" class="form-label">Action</label>
+				{% dv_field validator 'action' %}
+			</div>
+			{% if additional_fields is not empty %}
+				<div class="row mb-3">
+					<div class="col-2">Options</div>
+					<div class="col-10">
+						{% for additional_field in additional_fields %}
+							<div class="mb-3">
+								<label for="{{ additional_field }}" class="form_label">{{ additional_field|replace({'_': ' '})|capitalize }}</label>
+								{% dv_field validator additional_field %}
+							</div>
+						{% endfor %}
+					</div>
+				</div>
+			{% endif %}
 			<button type="submit" class="btn btn-primary">Execute Action</button>
-		</div>
-	</form>
+		</form>
+	</div>
 {% endblock %}

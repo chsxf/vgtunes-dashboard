@@ -2,6 +2,7 @@
 
 namespace AutomatedActions;
 
+use chsxf\MFX\DataValidator;
 use Exception;
 use Platform;
 use PlatformHelpers\PlatformHelperFactory;
@@ -10,15 +11,27 @@ class BandcampDatabaseUpdater extends AbstractAutomatedAction
 {
     private const string ALBUM_IDS = 'album_ids';
 
-    public function setUp(): void
+    public function setUp(DataValidator $validator): void
     {
         $dbService = $this->coreServiceProvider->getDatabaseService();
         $dbConn = $dbService->open();
 
+        $limit = $validator->getFieldValue(self::LIMIT_OPTION, true);
+        $firstId = $validator->getFieldValue(self::FIRST_ID_OPTION, true);
+
+        $values = [];
+
         $sql = "SELECT DISTINCT `album_id`
                     FROM `album_instances`
                     WHERE `album_id` NOT IN (SELECT DISTINCT `album_id` FROM `album_instances` WHERE `platform` = 'bandcamp')";
-        if (($ids = $dbConn->getColumn($sql)) === false) {
+        if ($firstId > 0) {
+            $sql .= " AND `album_id` >= ?";
+            $values[] = $firstId;
+        }
+        if ($limit > 0) {
+            $sql .= " LIMIT {$limit}";
+        }
+        if (($ids = $dbConn->getColumn($sql, $values)) === false) {
             throw new Exception('Unable to fetch album Ids with missing Bandcamp link');
         }
 

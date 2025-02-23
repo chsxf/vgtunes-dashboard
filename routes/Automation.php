@@ -32,13 +32,28 @@ class Automation extends BaseRouteProvider
         return self::$actions;
     }
 
-    private function buildActionValidator(): DataValidator
+    private function buildActionValidator(array &$additionalFields): DataValidator
     {
         $validator = new DataValidator();
-        $f = $validator->createField(self::ACTION_FIELD, FieldType::SELECT, extras: ['class' => 'form-select']);
+        $actions = self::getActions();
+        $defaultValue = key($actions);
+        $f = $validator->createField(self::ACTION_FIELD, FieldType::SELECT, defaultValue: $defaultValue, extras: ['class' => 'form-select']);
         if ($f instanceof WithOptions) {
-            $f->addOptions(self::getActions());
+            $f->addOptions($actions);
         }
+
+        if (!empty($_REQUEST) && !$validator->validate($_REQUEST, silent: true)) {
+            throw new Exception("Unable to validate request data");
+        }
+
+        $actionHash = $validator->getFieldValue(self::ACTION_FIELD, true);
+        $automatedAction = $this->getAutomatedActionInstance($actionHash);
+        $actionOptions = $automatedAction->getOptions();
+        foreach ($actionOptions as $optionField) {
+            $additionalFields[] = $optionField->getName();
+            $validator->addField($optionField);
+        }
+
         return $validator;
     }
 
@@ -62,22 +77,32 @@ class Automation extends BaseRouteProvider
     #[Route, RequiredRequestMethod(RequestMethod::GET)]
     public function home(): RequestResult
     {
-        return new RequestResult(data: ['validator' => $this->buildActionValidator()]);
+        $additionalFields = [];
+
+        try {
+            $actionValidator = $this->buildActionValidator($additionalFields);
+        } catch (Exception $e) {
+            trigger_error($e->getMessage());
+            return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
+        }
+
+        return new RequestResult(data: ['validator' => $actionValidator, 'additional_fields' => $additionalFields]);
     }
 
     #[Route, RequiredRequestMethod(RequestMethod::POST)]
     public function execute(): RequestResult
     {
-        $validator = $this->buildActionValidator();
-        if (!$validator->validate($_POST)) {
-            return RequestResult::buildRedirectRequestResult('/Automation/home');
-        }
-
         try {
+            $additionalFields = [];
+            $validator = $this->buildActionValidator($additionalFields);
+            if (!$validator->validate($_POST)) {
+                return RequestResult::buildRedirectRequestResult('/Automation/home');
+            }
+
             $automatedActionSha1 = $validator[self::ACTION_FIELD];
 
             $automatedAction = $this->getAutomatedActionInstance($automatedActionSha1);
-            $automatedAction->setUp();
+            $automatedAction->setUp($validator);
 
             $sessService = $this->serviceProvider->getSessionService();
             $sessService[self::CURRENT_AUTOMATED_ACTION_SHA1] = $automatedActionSha1;

@@ -47,6 +47,8 @@ final class BandcampPlatformHelper implements IPlatformHelper
             $error = curl_error($ch);
             curl_close($ch);
             throw new PlatformHelperException($error);
+        } else if (($http_status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE)) != 200) {
+            throw new PlatformHelperException("Server responded with HTTP status code {$http_status}");
         }
         curl_close($ch);
 
