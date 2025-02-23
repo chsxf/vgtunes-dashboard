@@ -3,6 +3,7 @@
 use AutomatedActions\AbstractAutomatedAction;
 use AutomatedActions\AutomatedActionStatus;
 use AutomatedActions\BandcampDatabaseUpdater;
+use AutomatedActions\DebugAutomatedAction;
 use chsxf\MFX\Attributes\RequiredRequestMethod;
 use chsxf\MFX\Attributes\Route;
 use chsxf\MFX\DataValidator;
@@ -20,22 +21,32 @@ class Automation extends BaseRouteProvider
 
     private static ?array $actions = null;
 
-    private static function getActions(): array
+    private static function getActions(bool $includeDebugActions): array
     {
         if (self::$actions === null) {
             $values = [
                 BandcampDatabaseUpdater::class
             ];
+
+            if ($includeDebugActions) {
+                $values[] = DebugAutomatedAction::class;
+            }
+
             $keys = array_map(fn($item) => sha1($item), $values);
             self::$actions = array_combine($keys, $values);
         }
         return self::$actions;
     }
 
+    private function allowDebugActions(): bool
+    {
+        return $this->serviceProvider->getConfigService()->getValue('automation.allow_debug_actions', false);
+    }
+
     private function buildActionValidator(array &$additionalFields, bool $requiresAction = true): DataValidator
     {
         $validator = new DataValidator();
-        $actions = self::getActions();
+        $actions = self::getActions($this->allowDebugActions());
         $defaultValue = key($actions);
         $f = $validator->createField(self::ACTION_FIELD, FieldType::SELECT, defaultValue: $defaultValue, required: $requiresAction, extras: ['class' => 'form-select']);
         if ($f instanceof WithOptions) {
@@ -59,7 +70,7 @@ class Automation extends BaseRouteProvider
 
     private function getAutomatedActionInstance(string $classSha1): AbstractAutomatedAction
     {
-        $actions = self::getActions();
+        $actions = self::getActions($this->allowDebugActions());
 
         if (!array_key_exists($classSha1, $actions)) {
             throw new Exception("Invalid automated action class SHA1 '{$classSha1}'");
@@ -86,6 +97,7 @@ class Automation extends BaseRouteProvider
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
         }
 
+        $this->serviceProvider->getScriptService()->add('/js/automation-home.js', defer: true);
         return new RequestResult(data: ['validator' => $actionValidator, 'additional_fields' => $additionalFields]);
     }
 

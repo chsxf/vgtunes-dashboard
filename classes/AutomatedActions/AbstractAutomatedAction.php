@@ -43,13 +43,13 @@ abstract class AbstractAutomatedAction
 
     public function getOptions(): array
     {
-        $limitOption = Field::create(self::LIMIT_OPTION, FieldType::POSITIVEZERO_INTEGER, defaultValue: 0, required: false);
-        $limitOption->addExtra('class', 'form-control');
-
         $firstIdOption = Field::create(self::FIRST_ID_OPTION, FieldType::POSITIVEZERO_INTEGER, defaultValue: 0, required: false);
         $firstIdOption->addExtra('class', 'form-control');
 
-        return [$limitOption, $firstIdOption];
+        $limitOption = Field::create(self::LIMIT_OPTION, FieldType::POSITIVEZERO_INTEGER, defaultValue: 0, required: false);
+        $limitOption->addExtra('class', 'form-control');
+
+        return [$firstIdOption, $limitOption];
     }
 
     abstract public function setUp(DataValidator $validator): void;

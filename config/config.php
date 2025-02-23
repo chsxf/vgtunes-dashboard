@@ -78,5 +78,9 @@ return new Config([
         'endpoint' => $secrets['ANALYTICS_ENDPOINT'],
         'access_key' => $secrets['ANALYTICS_ACCESS_KEY'],
         'domain' => $secrets['ANALYTICS_DOMAIN']
+    ],
+
+    'automation' => [
+        'allow_debug_actions' => $secrets['AUTOMATION_DEBUG_ACTIONS'] ?? false
     ]
 ]);
