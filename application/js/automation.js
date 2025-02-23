@@ -26,7 +26,7 @@ function onRequestEnds(e) {
       case "fl":
         if (parsedResponse.httpStatusCode == 429) {
           pushLog("Too Many Requests. Waiting for 60s and continuing...", "w");
-          setTimeout(() => proceedWithNextStep(), 60000);
+          startCountdown(60, () => proceedWithNextStep());
         }
         else {
           pushLog("Process failed.", "e");
@@ -45,7 +45,7 @@ function onRequestEnds(e) {
   }
 }
 
-function pushLog(logMsg, logType) {
+function pushLog(logMsg, logType, extraClass = '') {
   let textClass = undefined;
   switch (logType) {
     case "d":
@@ -61,7 +61,7 @@ function pushLog(logMsg, logType) {
 
   let msg = "";
   if (textClass) {
-    msg = `<span class="text-${textClass}">`;
+    msg = `<span class="text-${textClass} ${extraClass}">`;
   }
   msg += logMsg;
   if (textClass) {
@@ -72,6 +72,43 @@ function pushLog(logMsg, logType) {
   const logContainer = document.getElementById("automation-log");
   logContainer.innerHTML += msg;
   logContainer.scrollTo(0, logContainer.scrollHeight);
+}
+
+function startCountdown(seconds, callback) {
+  let remainingSeconds = seconds;
+  updateCountdownLabel(remainingSeconds);
+  let intervalRef = setInterval(function() {
+    remainingSeconds--;
+    if (remainingSeconds <= 0) {
+      clearInterval(intervalRef);
+      clearCountdownLabel();
+      proceedWithNextStep();
+    }
+    else {
+      updateCountdownLabel(remainingSeconds);
+    }
+  }, 1000);
+}
+
+function updateCountdownLabel(remainingSeconds) {
+  const logContainer = document.getElementById('automation-log');
+  const logCountdownElements = logContainer.getElementsByClassName('log-countdown');
+  const msg = `${remainingSeconds}`;
+  if (logCountdownElements.length > 0) {
+    logCountdownElements[0].innerHTML = msg;
+  }
+  else {
+    pushLog(msg, 'w', 'log-countdown');
+  }
+}
+
+function clearCountdownLabel() {
+  const logContainer = document.getElementById('automation-log');
+  const logCountdownElements = logContainer.getElementsByClassName('log-countdown');
+  if (logCountdownElements.length > 0) {
+    logCountdownElements[0].remove();
+    logContainer.innerHTML = logContainer.innerHTML.substring(0, logContainer.innerHTML.lastIndexOf("\n"));
+  }
 }
 
 function proceedWithNextStep() {
