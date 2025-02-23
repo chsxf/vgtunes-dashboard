@@ -32,12 +32,12 @@ class Automation extends BaseRouteProvider
         return self::$actions;
     }
 
-    private function buildActionValidator(array &$additionalFields): DataValidator
+    private function buildActionValidator(array &$additionalFields, bool $requiresAction = true): DataValidator
     {
         $validator = new DataValidator();
         $actions = self::getActions();
         $defaultValue = key($actions);
-        $f = $validator->createField(self::ACTION_FIELD, FieldType::SELECT, defaultValue: $defaultValue, extras: ['class' => 'form-select']);
+        $f = $validator->createField(self::ACTION_FIELD, FieldType::SELECT, defaultValue: $defaultValue, required: $requiresAction, extras: ['class' => 'form-select']);
         if ($f instanceof WithOptions) {
             $f->addOptions($actions);
         }
@@ -80,7 +80,7 @@ class Automation extends BaseRouteProvider
         $additionalFields = [];
 
         try {
-            $actionValidator = $this->buildActionValidator($additionalFields);
+            $actionValidator = $this->buildActionValidator($additionalFields, false);
         } catch (Exception $e) {
             trigger_error($e->getMessage());
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
