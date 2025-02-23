@@ -2,6 +2,7 @@
 
 namespace PlatformHelpers;
 
+use chsxf\MFX\HttpStatusCodes;
 use chsxf\MFX\Services\IAuthenticationService;
 use chsxf\MFX\Services\IConfigService;
 use chsxf\MFX\Services\IDatabaseService;
@@ -49,7 +50,7 @@ final class SpotifyHelper implements IPlatformHelper
             curl_close($ch);
             throw new PlatformHelperException($error);
         } else if (($http_status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE)) != 200) {
-            throw new PlatformHelperException("Server responded with HTTP status code {$http_status}");
+            throw new PlatformHelperException("Server responded with HTTP status code {$http_status}", HttpStatusCodes::tryFrom($http_status));
         }
         curl_close($ch);
 

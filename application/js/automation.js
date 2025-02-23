@@ -24,7 +24,13 @@ function onRequestEnds(e) {
         pushLog("Process complete.", "l");
         break;
       case "fl":
-        pushLog("Process failed.", "e");
+        if (parsedResponse.httpStatusCode == 429) {
+          pushLog("Too Many Requests. Waiting for 45s and continuing...", "w");
+          setTimeout(() => proceedWithNextStep(), 45000);
+        }
+        else {
+          pushLog("Process failed.", "e");
+        } 
         break;
       default:
         pushLog(`Unknown status '${parsedResponse.status}'`, "w");

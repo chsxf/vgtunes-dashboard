@@ -52,7 +52,7 @@ final class AppleMusicHelper implements IPlatformHelper
             curl_close($ch);
             throw new PlatformHelperException($error);
         } else if (($http_status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE)) != 200) {
-            throw new PlatformHelperException("Server responded with HTTP status code {$http_status}");
+            throw new PlatformHelperException("Server responded with HTTP status code {$http_status}", HttpStatusCodes::tryFrom($http_status));
         }
         curl_close($ch);
 

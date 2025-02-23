@@ -3,8 +3,10 @@
 namespace AutomatedActions;
 
 use chsxf\MFX\DataValidator;
+use chsxf\MFX\HttpStatusCodes;
 use Exception;
 use Platform;
+use PlatformHelpers\PlatformHelperException;
 use PlatformHelpers\PlatformHelperFactory;
 
 class BandcampDatabaseUpdater extends AbstractAutomatedAction
@@ -48,13 +50,13 @@ class BandcampDatabaseUpdater extends AbstractAutomatedAction
     {
         $sessionData = $this->getFromSession(self::ALBUM_IDS);
         if ($sessionData === null) {
-            return new AutomatedActionStepData(AutomatedActionStatus::failed, 'Unable to retrieve session data', AutomatedActionLogType::error);
+            return new AutomatedActionStepData(AutomatedActionStatus::failed, HttpStatusCodes::internalServerError, 'Unable to retrieve session data', AutomatedActionLogType::error);
         }
 
         $albumIds = $sessionData['album_ids'] ?? null;
         $currentIndex = $sessionData['current_index'] ?? null;
         if (!is_array($albumIds) || !is_int($currentIndex)) {
-            return new AutomatedActionStepData(AutomatedActionStatus::failed, 'Invalid session data structure', AutomatedActionLogType::error);
+            return new AutomatedActionStepData(AutomatedActionStatus::failed, HttpStatusCodes::internalServerError, 'Invalid session data structure', AutomatedActionLogType::error);
         }
 
         $stepData = new AutomatedActionStepData();
@@ -109,6 +111,9 @@ class BandcampDatabaseUpdater extends AbstractAutomatedAction
         } catch (Exception $e) {
             $dbConn->rollBack();
             $stepData->status = AutomatedActionStatus::failed;
+            if ($e instanceof PlatformHelperException && $e->statusCode !== null) {
+                $stepData->httpStatusCode = $e->statusCode;
+            }
             $stepData->addLogLine($e->getMessage(), AutomatedActionLogType::error);
         }
 

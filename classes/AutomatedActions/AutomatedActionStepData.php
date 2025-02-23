@@ -2,6 +2,7 @@
 
 namespace AutomatedActions;
 
+use chsxf\MFX\HttpStatusCodes;
 use JsonSerializable;
 
 class AutomatedActionStepData implements JsonSerializable
@@ -10,8 +11,12 @@ class AutomatedActionStepData implements JsonSerializable
     public int $totalItems = 0;
     public array $logLines = [];
 
-    public function __construct(public AutomatedActionStatus $status = AutomatedActionStatus::ok, ?string $logLine = null, AutomatedActionLogType $logType = AutomatedActionLogType::log)
-    {
+    public function __construct(
+        public AutomatedActionStatus $status = AutomatedActionStatus::ok,
+        public HttpStatusCodes $httpStatusCode = HttpStatusCodes::ok,
+        ?string $logLine = null,
+        AutomatedActionLogType $logType = AutomatedActionLogType::log
+    ) {
         if ($logLine !== null) {
             $this->addLogLine($logLine, $logType);
         }
@@ -36,6 +41,7 @@ class AutomatedActionStepData implements JsonSerializable
             'total' => $this->totalItems,
             'current' => $this->currentItemNumber,
             'status' => $this->status->value,
+            'httpStatusCode' => $this->httpStatusCode->value,
             'logs' => array_map(fn($line) => [$line[0], $line[1]->value], $this->logLines)
         ];
     }
