@@ -16,7 +16,7 @@ trait SearchExactMatchTrait
 
         foreach (self::CLEAN_REGEXP as $replacementRegex) {
             if ($replacementRegex !== null) {
-                $query = preg_replace($replacementRegex, '', $query);
+                $query = trim(preg_replace($replacementRegex, '', $query));
             }
 
             $passQueryResults = $this->search($query);
