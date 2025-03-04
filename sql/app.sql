@@ -94,3 +94,13 @@ CREATE TABLE `featured_albums` (
 
 ALTER TABLE `featured_albums`
     ADD CONSTRAINT `featured_albums_ibfk_1` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- [VERSION: 10]
+
+CREATE TABLE `steam_products` (
+    `app_id` bigint unsigned NOT NULL,
+    `name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+    `type` enum('game','dlc','other') COLLATE utf8mb4_general_ci NOT NULL,
+    `last_update` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`app_id`)
+) ENGINE=InnoDB;

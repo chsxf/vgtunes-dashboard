@@ -1,9 +1,16 @@
 {% extends "root.twig" %}
 
-{% block page_title "Latest Albums" %}
+{% block page_title "Home" %}
 
 {% block page_content %}
 	{{ parent() }}
+
+	<div class="alert alert-dark">
+		Steam Product updated last:
+		{{ last_steam_update|date() }}
+	</div>
+
+	<h2>Latest Albums</h2>
 
 	<table class="table table-striped">
 		<thead>

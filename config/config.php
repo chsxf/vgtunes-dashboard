@@ -64,6 +64,10 @@ return new Config([
         'key_path' => __DIR__ . "/AppleMusic_AuthKey_{$secrets['APPLE_MUSIC_KEY_ID']}.p8"
     ],
 
+    'steam' => [
+        'api_key' => $secrets['STEAM_API_KEY']
+    ],
+
     'covers' => [
         'output_path' => $secrets['COVERS_PATH'],
         'base_url' => $secrets['COVERS_BASE_URL']

@@ -70,7 +70,7 @@ final class Albums extends BaseRouteProvider implements IPaginationProvider
         return new RequestResult(data: ['albums' => $albums, 'pm' => $pageManager, 'frontend_base_url' => $this->serviceProvider->getConfigService()->getValue('frontend.base_url')]);
     }
 
-    public static function search(ICoreServiceProvider $coreServiceProvider, DatabaseConnectionInstance $dbConn, int $start, int $count, ?string $query = null): array
+    public static function search(ICoreServiceProvider $coreServiceProvider, DatabaseConnectionInstance $dbConn, int $start, int $count, ?string $query = null, ?string $orderClause = null): array
     {
         $sql = "SELECT `al`.`id`, `al`.`slug`, `al`.`title`, `ar`.`name` AS `artist_name`
                     FROM `albums` AS `al`
@@ -81,7 +81,11 @@ final class Albums extends BaseRouteProvider implements IPaginationProvider
             $sql .= " WHERE `al`.`title` LIKE ?";
             $values[] = "%{$query}%";
         }
-        $sql .= " ORDER BY `al`.`title` ASC";
+        if ($orderClause !== null) {
+            $sql .= " {$orderClause}";
+        } else {
+            $sql .= " ORDER BY `al`.`title` ASC";
+        }
         $sql .= sprintf(" LIMIT %d, %d", $start, $count);
         if (($albums = $dbConn->get($sql, \PDO::FETCH_ASSOC, $values)) === false) {
             throw new Exception('An error has occured while loading albums.');

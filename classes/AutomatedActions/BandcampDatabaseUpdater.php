@@ -9,7 +9,7 @@ use Platform;
 use PlatformHelpers\PlatformHelperException;
 use PlatformHelpers\PlatformHelperFactory;
 
-class BandcampDatabaseUpdater extends AbstractAutomatedAction
+class BandcampDatabaseUpdater extends AbstractSequentialAutomatedAction
 {
     private const string ALBUM_IDS = 'album_ids';
 

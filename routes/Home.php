@@ -68,10 +68,17 @@ class Home extends BaseRouteProvider
         $dbService = $this->serviceProvider->getDatabaseService();
         $dbConn = $dbService->open();
 
-        $albums = Albums::search($this->serviceProvider, $dbConn, 0, 10);
+        $albums = Albums::search($this->serviceProvider, $dbConn, 0, 10, orderClause: 'ORDER BY `created_at` DESC');
+
+        $sql = "SELECT MAX(`last_update`) FROM `steam_products`";
+        $lastSteamProductUpdate = $dbConn->getValue($sql);
+        if (empty($lastSteamProductUpdate)) {
+            $lastSteamProductUpdate = date('Y-m-d H:i:s');
+        }
 
         return new RequestResult(null, [
             'albums' => $albums,
+            'last_steam_update' => $lastSteamProductUpdate,
             'frontend_base_url' => $this->serviceProvider->getConfigService()->getValue('frontend.base_url')
         ]);
     }
