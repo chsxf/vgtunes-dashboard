@@ -2,14 +2,11 @@
 
 namespace AutomatedActions;
 
-use AutomatedActions\AbstractAutomatedAction;
-use AutomatedActions\AutomatedActionStatus;
 use chsxf\MFX\DataValidator;
-use AutomatedActions\AutomatedActionStepData;
 use chsxf\MFX\DataValidator\Field;
 use chsxf\MFX\DataValidator\FieldType;
 
-class DebugAutomatedAction extends AbstractAutomatedAction
+class DebugAutomatedAction extends AbstractSequentialAutomatedAction
 {
     public function getOptions(): array
     {
