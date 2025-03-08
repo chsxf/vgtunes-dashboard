@@ -18,6 +18,10 @@ final class PlatformHelperFactory
                 return new DeezerPlatformHelper();
             case Platform::spotify:
                 return new SpotifyHelper($serviceProvider->getConfigService(), $serviceProvider->getDatabaseService(), $serviceProvider->getAuthenticationService());
+            case Platform::steamGame:
+                return new SteamGamePlatformHelper($serviceProvider->getDatabaseService());
+            case Platform::steamSoundtrack:
+                return new SteamSoundtrackPlatformHelper($serviceProvider->getDatabaseService());
             default:
                 throw new PlatformHelperException("Unsupported platform '{$platform->value}'");
         }

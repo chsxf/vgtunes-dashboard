@@ -4,7 +4,7 @@ namespace PlatformHelpers;
 
 trait SearchExactMatchTrait
 {
-    private const array CLEAN_REGEXP = [
+    public const array CLEAN_REGEXP = [
         null,
         '/\([^)]+\)/',
         '/-\s+EP\s*$/'

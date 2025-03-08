@@ -104,3 +104,9 @@ CREATE TABLE `steam_products` (
     `last_update` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`app_id`)
 ) ENGINE=InnoDB;
+
+-- [VERSION: 11]
+
+ALTER TABLE `album_instances`
+    CHANGE `platform` `platform` ENUM('apple_music','deezer','spotify','bandcamp','steam_game','steam_soundtrack') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;
+   
