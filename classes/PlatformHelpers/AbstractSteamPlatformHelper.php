@@ -53,7 +53,8 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
 
             $passQueryResults = $this->search($query);
             foreach ($passQueryResults as $result) {
-                if ($result->title == $query) {
+                $resultTitle = PlatformAlbum::cleanupAlbumTitle($result->title);
+                if (strcasecmp($resultTitle, $query) == 0) {
                     return iterator_to_array($result);
                 }
             }

@@ -306,17 +306,6 @@ final class Album extends BaseRouteProvider
         return $albumDetails;
     }
 
-    private static function cleanupAlbumTitle(string $albumTitle): string
-    {
-        $cleanedTitle = $albumTitle;
-        foreach (PlatformAlbum::CLEAN_REGEXP as $cleanRegex) {
-            if ($cleanRegex !== null) {
-                $cleanedTitle = trim(preg_replace($cleanRegex, '', $cleanedTitle));
-            }
-        }
-        return $cleanedTitle;
-    }
-
     #[Route, RequiredRequestMethod(RequestMethod::GET), PreRouteCallback('GlobalCallbacks::googleChartsPreRouteCallback')]
     public function show(array $params): RequestResult
     {
@@ -363,7 +352,7 @@ final class Album extends BaseRouteProvider
         $requestResultData = [
             'is_new' => !$isSavedAlbum,
             'album_details' => $albumDetails,
-            'sanitized_title' => self::cleanupAlbumTitle($albumDetails['title']),
+            'sanitized_title' => PlatformAlbum::cleanupAlbumTitle($albumDetails['title']),
             'platforms' => Platform::PLATFORMS,
             'search_query_params' => $isSavedAlbum ? self::createEditSearchQueryParams($albumId) : self::SEARCH_QUERY_PARAMS_ADD,
             'commit_url' => $isSavedAlbum ? "/Album/commit/{$albumId}" : "/Album/commit"

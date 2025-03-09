@@ -5,7 +5,8 @@ final class PlatformAlbum implements IteratorAggregate
     public const array CLEAN_REGEXP = [
         null,
         '/\([^)]+\)/',
-        '/-\s+EP\s*$/'
+        '/-\s+EP\s*$/',
+        '/[^a-z0-9\s]/i'
     ];
 
     public bool $existsInDatabase;
@@ -22,5 +23,16 @@ final class PlatformAlbum implements IteratorAggregate
     public function getIterator(): Traversable
     {
         return new ArrayIterator($this);
+    }
+
+    public static function cleanupAlbumTitle(string $albumTitle): string
+    {
+        $cleanedTitle = $albumTitle;
+        foreach (self::CLEAN_REGEXP as $cleanRegex) {
+            if ($cleanRegex !== null) {
+                $cleanedTitle = trim(preg_replace($cleanRegex, '', $cleanedTitle));
+            }
+        }
+        return $cleanedTitle;
     }
 }
