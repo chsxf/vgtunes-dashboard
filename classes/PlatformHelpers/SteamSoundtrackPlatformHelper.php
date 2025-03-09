@@ -7,9 +7,9 @@ use Platform;
 
 class SteamSoundtrackPlatformHelper extends AbstractSteamPlatformHelper
 {
-    protected function databaseCategory(): string
+    protected function sqlTypeClause(): string
     {
-        return SteamProductType::other->value;
+        return sprintf("= '%s'", SteamProductType::other->value);
     }
 
     public function getPlatform(): Platform

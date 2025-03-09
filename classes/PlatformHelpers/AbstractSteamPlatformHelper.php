@@ -10,7 +10,7 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
     private const string LOOKUP_URL = 'https://store.steampowered.com/app/{PLATFORM_ID}';
     private const string CAPSULE_URL = 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/{PLATFORM_ID}/header.jpg?t={NOW}';
 
-    abstract protected function databaseCategory(): string;
+    abstract protected function sqlTypeClause(): string;
 
     public function __construct(private readonly IDatabaseService $databaseService) {}
 
@@ -25,9 +25,9 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
 
         $sql = "SELECT `app_id`, `name`
                     FROM `steam_products`
-                    WHERE `name` LIKE ? AND `type` = ?
+                    WHERE `name` LIKE ? AND `type` {$this->sqlTypeClause()}
                     LIMIT 50";
-        $values = ["%{$query}%", $this->databaseCategory()];
+        $values = ["%{$query}%"];
 
         if (($dbResults = $dbConn->get($sql, \PDO::FETCH_ASSOC, $values)) === false) {
             throw new PlatformHelperException("A database error has occured");
@@ -42,7 +42,7 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
         return $results;
     }
 
-    public function searchExactMatch(string $title, string $artistName): ?array
+    public function searchExactMatch(string $title, string $ignoredArtistName): ?array
     {
         $query = $title;
 

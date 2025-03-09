@@ -7,9 +7,9 @@ use Platform;
 
 class SteamGamePlatformHelper extends AbstractSteamPlatformHelper
 {
-    protected function databaseCategory(): string
+    protected function sqlTypeClause(): string
     {
-        return SteamProductType::game->value;
+        return sprintf("IN ('%s','%s')", SteamProductType::game->value, SteamProductType::dlc->value);
     }
 
     public function getPlatform(): Platform

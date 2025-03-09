@@ -4,6 +4,7 @@ use AutomatedActions\AbstractAutomatedAction;
 use AutomatedActions\AutomatedActionStatus;
 use AutomatedActions\BandcampDatabaseUpdater;
 use AutomatedActions\DebugAutomatedAction;
+use AutomatedActions\SteamDatabaseUpdater;
 use AutomatedActions\SteamProductsUpdater;
 use chsxf\MFX\Attributes\RequiredRequestMethod;
 use chsxf\MFX\Attributes\Route;
@@ -27,6 +28,7 @@ class Automation extends BaseRouteProvider
         if (self::$actions === null) {
             $values = [
                 BandcampDatabaseUpdater::class,
+                SteamDatabaseUpdater::class,
                 SteamProductsUpdater::class
             ];
 

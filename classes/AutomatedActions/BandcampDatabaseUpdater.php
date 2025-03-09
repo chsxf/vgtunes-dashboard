@@ -94,10 +94,10 @@ class BandcampDatabaseUpdater extends AbstractSequentialAutomatedAction
             if ($exactMatch === null) {
                 $stepData->addLogLine('  No match for this album', AutomatedActionLogType::warning);
             } else {
-                $stepData->addLogLine("  Match found: {$album['title']} - {$album['artist_name']}");
+                $stepData->addLogLine("  Match found: {$exactMatch['title']} - {$exactMatch['artist_name']}");
 
-                $sql = "INSERT INTO `album_instances` VALUE (?, 'bandcamp', ?)";
-                if ($dbConn->exec($sql, $currentAlbumId, $exactMatch['platform_id']) === false) {
+                $sql = "INSERT INTO `album_instances` VALUE (?, ?, ?)";
+                if ($dbConn->exec($sql, $currentAlbumId, Platform::bandcamp->value, $exactMatch['platform_id']) === false) {
                     throw new Exception('  Unable to save match');
                 }
             }
