@@ -73,7 +73,7 @@ class Home extends BaseRouteProvider
         $sql = "SELECT MAX(`last_update`) FROM `steam_products`";
         $lastSteamProductUpdate = $dbConn->getValue($sql);
         if (empty($lastSteamProductUpdate)) {
-            $lastSteamProductUpdate = date('Y-m-d H:i:s');
+            $lastSteamProductUpdate = date('Y-m-d H:i:s', 0);
         }
 
         return new RequestResult(null, [
