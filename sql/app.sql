@@ -110,3 +110,7 @@ CREATE TABLE `steam_products` (
 ALTER TABLE `album_instances`
     CHANGE `platform` `platform` ENUM('apple_music','deezer','spotify','bandcamp','steam_game','steam_soundtrack') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;
    
+-- [VERSION: 12]
+
+ALTER TABLE `steam_products`
+    CHANGE `app_id` `app_id` MEDIUMINT UNSIGNED NOT NULL; 
