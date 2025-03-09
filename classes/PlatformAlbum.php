@@ -2,6 +2,12 @@
 
 final class PlatformAlbum implements IteratorAggregate
 {
+    public const array CLEAN_REGEXP = [
+        null,
+        '/\([^)]+\)/',
+        '/-\s+EP\s*$/'
+    ];
+
     public bool $existsInDatabase;
 
     public function __construct(

@@ -2,19 +2,15 @@
 
 namespace PlatformHelpers;
 
+use PlatformAlbum;
+
 trait SearchExactMatchTrait
 {
-    public const array CLEAN_REGEXP = [
-        null,
-        '/\([^)]+\)/',
-        '/-\s+EP\s*$/'
-    ];
-
     public function searchExactMatch(string $title, string $artistName): ?array
     {
         $query = $title;
 
-        foreach (self::CLEAN_REGEXP as $replacementRegex) {
+        foreach (PlatformAlbum::CLEAN_REGEXP as $replacementRegex) {
             if ($replacementRegex !== null) {
                 $query = trim(preg_replace($replacementRegex, '', $query));
             }

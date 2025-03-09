@@ -55,7 +55,8 @@
 						{% else %}
 							<form method="get" action="/Album/searchPlatform">
 								<input type="hidden" name="platform" value="{{ platform }}"/>
-								<input type="hidden" name="q" value="{{ album_details.title }}"/>
+								{% set search_album_title = platform starts with 'steam' ? sanitized_title : album_details.title %}
+								<input type="hidden" name="q" value="{{ search_album_title }}"/>
 								{% for name, value in search_query_params %}
 									<input type="hidden" name="{{ name }}" value="{{ value }}"/>
 								{% endfor %}

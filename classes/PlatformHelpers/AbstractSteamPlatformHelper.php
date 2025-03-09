@@ -46,7 +46,7 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
     {
         $query = $title;
 
-        foreach (SearchExactMatchTrait::CLEAN_REGEXP as $replacementRegex) {
+        foreach (PlatformAlbum::CLEAN_REGEXP as $replacementRegex) {
             if ($replacementRegex !== null) {
                 $query = trim(preg_replace($replacementRegex, '', $query));
             }
