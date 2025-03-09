@@ -68,7 +68,6 @@ final class Albums extends BaseRouteProvider implements IPaginationProvider
         }
 
         return new RequestResult(data: [
-            'platforms' => Platform::PLATFORMS,
             'albums' => $albums,
             'pm' => $pageManager,
             'frontend_base_url' => $this->serviceProvider->getConfigService()->getValue('frontend.base_url')

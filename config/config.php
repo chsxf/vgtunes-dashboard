@@ -24,7 +24,8 @@ return new Config([
     ],
 
     'request' => [
-        'default_route' => 'Home/signIn'
+        'default_route' => 'Home/signIn',
+        'pre_route_callback' => [GlobalCallbacks::class, 'main']
     ],
 
     'response' => [
