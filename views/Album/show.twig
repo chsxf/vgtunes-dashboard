@@ -50,19 +50,24 @@
 					</div>
 
 					<div class="col-auto">
-						{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null %}
-							<a href="{{ album_details.instances[platform].url }}" class="btn btn-sm btn-outline-success" target="_blank">Look Up</a>
-						{% else %}
-							<form method="get" action="/Album/searchPlatform">
-								<input type="hidden" name="platform" value="{{ platform }}"/>
-								{% set search_album_title = platform starts with 'steam' ? sanitized_title : album_details.title %}
-								<input type="hidden" name="q" value="{{ search_album_title }}"/>
-								{% for name, value in search_query_params %}
-									<input type="hidden" name="{{ name }}" value="{{ value }}"/>
-								{% endfor %}
-								<button class="btn btn-sm btn-outline-primary">Search</button>
-							</form>
-						{% endif %}
+						<div class="row">
+							{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null %}
+								<div class="col-auto">
+									<a href="{{ album_details.instances[platform].url }}" class="btn btn-sm btn-outline-success" target="_blank">Look Up</a>
+								</div>
+							{% endif %}
+							<div class="col-auto">
+								<form method="get" action="/Album/searchPlatform">
+									<input type="hidden" name="platform" value="{{ platform }}"/>
+									{% set search_album_title = platform starts with 'steam' ? sanitized_title : album_details.title %}
+									<input type="hidden" name="q" value="{{ search_album_title }}"/>
+									{% for name, value in search_query_params %}
+										<input type="hidden" name="{{ name }}" value="{{ value }}"/>
+									{% endfor %}
+									<button class="btn btn-sm btn-outline-primary">Search</button>
+								</form>
+							</div>
+						</div>
 					</div>
 				</div>
 			{% endfor %}

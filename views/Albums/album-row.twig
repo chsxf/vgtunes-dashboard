@@ -5,7 +5,7 @@
 	<td>{{ album.artist_name }}</td>
 	<td>
 		{% for platform in album.platforms %}
-			<img src="/img/platforms/{{ platform }}-64px.png" width="24">
+			<img src="/img/platforms/{{ platform }}-64px.png" width="24" title="{{ platforms[platform] }}">
 		{% else %}
 			&nsbp;
 		{% endfor %}
