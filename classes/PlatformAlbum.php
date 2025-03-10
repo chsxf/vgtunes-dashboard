@@ -6,7 +6,10 @@ final class PlatformAlbum implements IteratorAggregate
         null,
         '/\([^)]+\)/',
         '/-\s+EP\s*$/',
-        '/[^a-z0-9\s]/i'
+        "/[^'a-z0-9\s]/i",
+        '/\s(OST|EP)$/i',
+        '/Original( .+)? Soundtrack/i',
+        '/vol\.? [ixvlm0-9]/i'
     ];
 
     public bool $existsInDatabase;
