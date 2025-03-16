@@ -19,6 +19,11 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
         return str_replace('{PLATFORM_ID}', $platformId, self::LOOKUP_URL);
     }
 
+    protected function getCoverUrl(string $platformId, int $time): string
+    {
+        return str_replace(['{PLATFORM_ID}', '{NOW}'], [$platformId, $time], self::CAPSULE_URL);
+    }
+
     public function search(string $query): array
     {
         $dbConn = $this->databaseService->open();
@@ -36,7 +41,7 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
         $results = [];
         foreach ($dbResults as $dbResult) {
             $id = $dbResult['app_id'];
-            $imgUrl = str_replace(['{PLATFORM_ID}', '{NOW}'], [$id, time()], self::CAPSULE_URL);
+            $imgUrl = $this->getCoverUrl($id, time());
             $results[] = new PlatformAlbum($dbResult['name'], $id, 'n/a', $imgUrl);
         }
         return $results;

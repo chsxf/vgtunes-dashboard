@@ -10,12 +10,29 @@ final class CoverProcessor
         }
 
         $sizes = [
-            'source' => self::getJPEGAsString($srcImage, 100),
-            1000 => self::getWebPAsString($srcImage)
+            'source' => self::getJPEGAsString($srcImage, 100)
         ];
 
+        // Converting to square if needed
+        $srcWidth = imagesx($srcImage);
+        $srcHeight = imagesy($srcImage);
+        if ($srcWidth != $srcHeight) {
+            $dstWidth = min(1000, $srcWidth);
+            $dstHeight = min(1000, $srcHeight);
+
+            $squareSize = max($dstWidth, $dstHeight);
+            $reductionSource = imagecreatetruecolor($squareSize, $squareSize);
+
+            $dstX = floor(($squareSize - $dstWidth) / 2);
+            $dstY = floor(($squareSize - $dstHeight) / 2);
+
+            imagecopyresampled($reductionSource, $srcImage, $dstX, $dstY, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
+            imagedestroy($srcImage);
+            $srcImage = $reductionSource;
+        }
+
         // Reductions
-        $reductions = [500, 250, 100];
+        $reductions = [1000, 500, 250, 100];
         foreach ($reductions as $reduction) {
             $reducedImage = imagescale($srcImage, $reduction, mode: IMG_BICUBIC);
             if ($reducedImage === false) {
