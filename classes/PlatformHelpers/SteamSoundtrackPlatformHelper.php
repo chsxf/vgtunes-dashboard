@@ -9,7 +9,7 @@ class SteamSoundtrackPlatformHelper extends AbstractSteamPlatformHelper
 {
     protected function sqlTypeClause(): string
     {
-        return sprintf("= '%s'", SteamProductType::other->value);
+        return sprintf("IN ('%s','%s')", SteamProductType::other->value, SteamProductType::dlc->value);
     }
 
     public function getPlatform(): Platform
