@@ -1,0 +1,15 @@
+{% extends 'root.twig' %}
+
+{% block page_title 'Add New Artist' %}
+
+{% block page_content %}
+	{{ parent() }}
+
+	<form method="post" action="/Artist/add">
+		<div class="mb-3">
+			<label for="name" class="form-label">Name</label>
+			{% dv_field validator 'name' %}
+		</div>
+		<button type="submit" class="btn btn-primary">Add Artist</button>
+	</form>
+{% endblock %}

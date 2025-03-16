@@ -1,0 +1,8 @@
+<tr class="align-middle">
+	<th scope="row">{{ artist.id }}</th>
+	<td>{{ artist.name }}</td>
+	<td>
+		<a href="/Artist/show/{{ artist.id }}" class="btn btn-sm btn-outline-success">View Details</a>
+		<a href="{{ frontend_base_url }}/artists/{{ artist.slug }}/" class="btn btn-sm btn-outline-primary" target="_blank">View on Front-end</a>
+	</td>
+</tr>

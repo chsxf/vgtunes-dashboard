@@ -1,0 +1,51 @@
+{% extends 'root.twig' %}
+
+{% block page_title 'Artist Details' %}
+
+{% block page_content %}
+	{{ parent() }}
+
+	<div class="row mt-3">
+		<div class="col-1 text-end">Name</div>
+		<div class="col-6 text-secondary">
+			<form class="row row-cols-lg-auto g-3 align-items-center" method="post" action="/Artist/edit">
+				{% dv_field validator 'id' 'id' 'hidden' %}
+				<div class="col-12">
+					{% dv_field validator 'name' %}
+				</div>
+				<div class="col-12">
+					<button type="submit" class="btn btn-primary">Save Changes</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	<hr/>
+	<div class="row mb-3">
+		<div class="col-1 text-end">Id</div>
+		<div class="col-6 text-secondary">
+			{{ artist_details.id }}
+		</div>
+	</div>
+	<div class="row mb-3">
+		<div class="col-1 text-end">Slug</div>
+		<div class="col-2 text-secondary">{{ artist_details.slug }}</div>
+	</div>
+
+	{% if analytics is defined %}
+		<hr/>
+		<div class="row">
+			<div class="col-1 text-end">Analytics</div>
+			<div class="col-11">
+				{{ include('timeFrameSelector.twig', { action: '/Artist/show/%d'|format(artist_details.id), 'validator': analytics.validator }, with_context = false )}}
+
+				<div class="spinner-border mt-3" role="status" id="graph-spinner">
+					<span class="visually-hidden">Loading...</span>
+				</div>
+
+				<div class="mt-3" id="graph" style="height: 400px"></div>
+
+				<script type="text/javascript">{{ include('graph.js', { graph_element_id: 'graph' }) }}</script>
+			</div>
+		</div>
+	{% endif %}
+{% endblock %}
