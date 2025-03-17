@@ -14,7 +14,7 @@ class SteamGamePlatformHelper extends AbstractSteamPlatformHelper
         return sprintf("IN ('%s','%s')", SteamProductType::game->value, SteamProductType::dlc->value);
     }
 
-    protected function getCoverUrl(string $platformId, int $time): string
+    public static function getHeroCapsuleUrl(string $platformId, int $time): ?string
     {
         $heroCapsuleUrl = str_replace(['{PLATFORM_ID}', '{NOW}'], [$platformId, $time], self::HERO_CAPSULE_URL);
 
@@ -22,7 +22,7 @@ class SteamGamePlatformHelper extends AbstractSteamPlatformHelper
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_exec($ch);
         if (curl_errno($ch) || curl_getinfo($ch, CURLINFO_HTTP_CODE) == 404) {
-            $heroCapsuleUrl = parent::getCoverUrl($platformId, $time);
+            $heroCapsuleUrl = null;
         }
         curl_close($ch);
 

@@ -19,6 +19,7 @@ use chsxf\MFX\Routers\BaseRouteProvider;
 use chsxf\MFX\Services\IConfigService;
 use chsxf\MFX\StringTools;
 use PlatformHelpers\PlatformHelperFactory;
+use PlatformHelpers\SteamGamePlatformHelper;
 
 final class Album extends BaseRouteProvider
 {
@@ -90,6 +91,13 @@ final class Album extends BaseRouteProvider
                         ]
                     ]
                 ];
+
+                if ($validator[self::PLATFORM_FIELD] == Platform::steamGame->value) {
+                    $heroCapsuleUrl = SteamGamePlatformHelper::getHeroCapsuleUrl($validator[self::PLATFORM_ID_FIELD], time());
+                    if ($heroCapsuleUrl !== null) {
+                        $sessionAlbumData[self::COVER_URL_FIELD] = $heroCapsuleUrl;
+                    }
+                }
             }
 
             foreach (Platform::cases() as $platform) {
@@ -102,6 +110,8 @@ final class Album extends BaseRouteProvider
             $sessionService[self::SESS_ALBUM_DATA] = $sessionAlbumData;
             return RequestResult::buildRedirectRequestResult('/Album/show');
         }
+
+        return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
     }
 
     #[Route, RequiredRequestMethod(RequestMethod::POST)]

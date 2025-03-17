@@ -19,7 +19,7 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
         return str_replace('{PLATFORM_ID}', $platformId, self::LOOKUP_URL);
     }
 
-    protected function getCoverUrl(string $platformId, int $time): string
+    private function getCoverUrl(string $platformId, int $time): string
     {
         return str_replace(['{PLATFORM_ID}', '{NOW}'], [$platformId, $time], self::CAPSULE_URL);
     }
