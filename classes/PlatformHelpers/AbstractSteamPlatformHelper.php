@@ -24,14 +24,20 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
         return str_replace(['{PLATFORM_ID}', '{NOW}'], [$platformId, $time], self::CAPSULE_URL);
     }
 
+    private static function containsExactWords(string $fullText, array $words): bool
+    {
+        $textWords = array_filter(preg_split('/\W/', strtolower($fullText)));
+        $intersection = array_intersect($textWords, $words);
+        return count($intersection) == count($words);
+    }
+
     public function search(string $query): array
     {
         $dbConn = $this->databaseService->open();
 
         $sql = "SELECT `app_id`, `name`
                     FROM `steam_products`
-                    WHERE `name` LIKE ? AND `type` {$this->sqlTypeClause()}
-                    LIMIT 50";
+                    WHERE `name` LIKE ? AND `type` {$this->sqlTypeClause()}";
         $values = ["%{$query}%"];
 
         if (($dbResults = $dbConn->get($sql, \PDO::FETCH_ASSOC, $values)) === false) {
@@ -39,12 +45,28 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
         }
 
         $results = [];
+        $queryLength = strlen($query);
+        $queryWords = array_filter(preg_split('/\W/', strtolower($query)));
         foreach ($dbResults as $dbResult) {
             $id = $dbResult['app_id'];
             $imgUrl = $this->getCoverUrl($id, time());
-            $results[] = new PlatformAlbum($dbResult['name'], $id, 'n/a', $imgUrl);
+
+            if (self::containsExactWords($dbResult['name'], $queryWords)) {
+                $lengthDistance = strlen($dbResult['name']) - strlen($queryLength);
+            } else {
+                $lengthDistance = PHP_INT_MAX;
+            }
+            $results[] = [new PlatformAlbum($dbResult['name'], $id, 'n/a', $imgUrl), $lengthDistance];
         }
-        return $results;
+        usort($results, function ($itemA, $itemB) {
+            $comp = $itemA[1] <=> $itemB[1];
+            if ($comp === 0) {
+                $comp = $itemA[0] <=> $itemB[0];
+            }
+            return $comp;
+        });
+
+        return array_map(fn($item) => $item[0], $results);
     }
 
     public function searchExactMatch(string $title, string $ignoredArtistName): ?array
