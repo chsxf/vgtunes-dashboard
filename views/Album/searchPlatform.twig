@@ -8,6 +8,12 @@
 	Platform Search
 {% endblock %}
 
+{% block page_controls %}
+	{% if back_url is defined %}
+		<a href="{{ back_url }}" class="btn btn-outline-warning">Back to album</a>
+	{% endif %}
+{% endblock %}
+
 {% block page_content %}
 	{{ parent() }}
 
@@ -95,6 +101,7 @@
 								{% dv_field search_validator 'platform' %}
 								{% dv_field search_validator 'title_prefix' %}
 								{% dv_field search_validator 'callback' %}
+								{% dv_field search_validator 'back_url' %}
 								{% dv_field search_validator 'q' %}
 								<button class="btn btn-primary">Search Again</button>
 							</form>

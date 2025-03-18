@@ -9,9 +9,16 @@
 		</div>
 
 		<div id="page-content-container" class="d-flex flex-column flex-shrink-0 p-3 text-bg-dark" style="width: calc(100vw - 250px)">
-			<h1>
-				{% block page_title %}{% endblock %}
-			</h1>
+			<div class="row">
+				<div class="col-6">
+					<h1>
+						{% block page_title %}{% endblock %}
+					</h1>
+				</div>
+				<div class="col-6 text-end">
+					{% block page_controls %}{% endblock %}
+				</div>
+			</div>
 
 			{% block page_content %}{% endblock %}
 		</div>

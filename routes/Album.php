@@ -40,10 +40,15 @@ final class Album extends BaseRouteProvider
     private const string INSTANCES_FIELD = 'instances';
     private const string PLATFORM_ID_FIELD = 'platform_id';
     private const string LAST_FEATURED_FIELD = 'last_featured';
+    private const string BACK_URL_FIELD = 'back_url';
 
     private const string PREVIOUS_SEARCHES = 'previous_searches';
 
-    private const array SEARCH_QUERY_PARAMS_ADD = [self::CALLBACK_FIELD => '/Album/add', self::TITLE_PREFIX_FIELD => 'Add New Album'];
+    private const array SEARCH_QUERY_PARAMS_ADD = [
+        self::CALLBACK_FIELD => '/Album/add',
+        self::TITLE_PREFIX_FIELD => 'Add New Album',
+        self::BACK_URL_FIELD => '/Album/show'
+    ];
 
     #[Route, RequiredRequestMethod(RequestMethod::GET), RequiredRequestMethod(RequestMethod::POST)]
     public function add(): RequestResult
@@ -176,7 +181,11 @@ final class Album extends BaseRouteProvider
 
     private static function createEditSearchQueryParams(int $albumId): array
     {
-        return [self::CALLBACK_FIELD => "/Album/edit/{$albumId}", self::TITLE_PREFIX_FIELD => 'Edit Album'];
+        return [
+            self::CALLBACK_FIELD => "/Album/edit/{$albumId}",
+            self::TITLE_PREFIX_FIELD => 'Edit Album',
+            self::BACK_URL_FIELD => "/Album/show/{$albumId}"
+        ];
     }
 
     #[Route, RequiredRequestMethod(RequestMethod::GET)]
@@ -184,6 +193,7 @@ final class Album extends BaseRouteProvider
     {
         $validator = new DataValidator();
         $validator->createField(self::CALLBACK_FIELD, FieldType::HIDDEN, required: false);
+        $validator->createField(self::BACK_URL_FIELD, FieldType::HIDDEN, required: false);
         $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::HIDDEN, required: false);
         $validator->createField(self::QUERY_FIELD, FieldType::TEXT, '', extras: ['class' => 'form-control']);
         $f = $validator->createField(self::PLATFORM_FIELD, FieldType::SELECT, Platform::deezer->value, required: false, extras: ['class' => 'form-select']);
@@ -256,14 +266,19 @@ final class Album extends BaseRouteProvider
         });
         $previousSearches = array_reverse($previousSearches);
 
-        return new RequestResult(data: [
+        $requestData = [
             'validator' => $validator,
             'search_result_validator' => self::createSearchResultValidator($validator[self::PLATFORM_FIELD]),
             'search_results' => $searchResults,
             'title_prefix' => $_REQUEST[self::TITLE_PREFIX_FIELD] ?? null,
             'callback' => $_REQUEST[self::CALLBACK_FIELD] ?? null,
             'previous_searches' => $previousSearches
-        ]);
+        ];
+        if (!empty($_REQUEST[self::BACK_URL_FIELD])) {
+            $requestData[self::BACK_URL_FIELD] = $_REQUEST[self::BACK_URL_FIELD];
+        }
+
+        return new RequestResult(data: $requestData);
     }
 
     private static function createSearchResultValidator(?string $platform = null): DataValidator
@@ -283,6 +298,7 @@ final class Album extends BaseRouteProvider
         $validator = new DataValidator();
         $validator->createField(self::PLATFORM_FIELD, FieldType::HIDDEN, $sourceValidator[self::PLATFORM_FIELD] ?? Platform::deezer->value);
         $validator->createField(self::CALLBACK_FIELD, FieldType::HIDDEN, $sourceValidator[self::CALLBACK_FIELD], required: false);
+        $validator->createField(self::BACK_URL_FIELD, FieldType::HIDDEN, $sourceValidator[self::BACK_URL_FIELD], required: false);
         $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::HIDDEN, $sourceValidator[self::TITLE_PREFIX_FIELD], required: false);
         $validator->createField(self::QUERY_FIELD, FieldType::HIDDEN, $query);
         return $validator;
