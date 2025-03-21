@@ -16,6 +16,8 @@ final class SpotifyHelper implements IPlatformHelper
 
     private const SPOTIFY_ALBUM_LOOKUP_URL = "https://open.spotify.com/album/{PLATFORM_ID}";
 
+    private ?int $nextPageIndex = null;
+
     public function __construct(private IConfigService $configService, private IDatabaseService $databaseService, private IAuthenticationService $authService) {}
 
     public function getPlatform(): Platform
@@ -28,7 +30,7 @@ final class SpotifyHelper implements IPlatformHelper
         return str_replace('{PLATFORM_ID}', $platformId, self::SPOTIFY_ALBUM_LOOKUP_URL);
     }
 
-    public function search(string $query): array
+    public function search(string $query, ?int $startAt = null): array
     {
         $accessToken = $this->getAccessToken();
 
@@ -36,7 +38,8 @@ final class SpotifyHelper implements IPlatformHelper
             'q' => $query,
             'type' => 'album',
             'market' => 'US',
-            'limit' => 50
+            'limit' => $this->resultsPerPage(),
+            'offset' => $startAt ?? 0
         ]);
         $url = "https://api.spotify.com/v1/search?{$query}";
         $ch = curl_init($url);
@@ -58,6 +61,16 @@ final class SpotifyHelper implements IPlatformHelper
             $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
         } catch (JsonException $e) {
             throw new PlatformHelperException('An error has occured while parsing search results.', previous: $e);
+        }
+
+        if (array_key_exists('next', $decodedJson['albums'])) {
+            $queryParams = parse_url($decodedJson['albums']['next'], PHP_URL_QUERY);
+            if (!empty($queryParams)) {
+                parse_str($queryParams, $parsedQueryParams);
+                if (array_key_exists('offset', $parsedQueryParams) && ctype_digit($parsedQueryParams['offset'])) {
+                    $this->nextPageIndex = intval($parsedQueryParams['offset']);
+                }
+            }
         }
 
         $results = [];
@@ -132,5 +145,20 @@ final class SpotifyHelper implements IPlatformHelper
         $dbConn->commit();
         $this->databaseService->close($dbConn);
         return $newAccessToken;
+    }
+
+    public function supportsPagination(): bool
+    {
+        return true;
+    }
+
+    public function nextPageStart(): ?int
+    {
+        return $this->nextPageIndex;
+    }
+
+    public function resultsPerPage(): int
+    {
+        return 50;
     }
 }

@@ -24,7 +24,7 @@ final class BandcampPlatformHelper implements IPlatformHelper
         return $chunks[1];
     }
 
-    public function search(string $query): array
+    public function search(string $query, ?int $startAt = null): array
     {
         $payload = [
             'search_text' => $query,
@@ -74,5 +74,20 @@ final class BandcampPlatformHelper implements IPlatformHelper
             $results[] = new PlatformAlbum($album['name'], $id, $album['band_name'], $imgUrl);
         }
         return $results;
+    }
+
+    public function supportsPagination(): bool
+    {
+        return false;
+    }
+
+    public function nextPageStart(): ?int
+    {
+        return null;
+    }
+
+    public function resultsPerPage(): int
+    {
+        return -1;
     }
 }

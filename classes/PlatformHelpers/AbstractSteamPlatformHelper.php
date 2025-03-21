@@ -31,7 +31,7 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
         return count($intersection) == count($words);
     }
 
-    public function search(string $query): array
+    public function search(string $query, ?int $startAt = null): array
     {
         $dbConn = $this->databaseService->open();
 
@@ -87,6 +87,16 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
             }
         }
 
+        return null;
+    }
+
+    public function supportsPagination(): bool
+    {
+        return false;
+    }
+
+    public function nextPageStart(): ?int
+    {
         return null;
     }
 }

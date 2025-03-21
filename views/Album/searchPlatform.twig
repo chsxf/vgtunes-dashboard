@@ -18,9 +18,9 @@
 	{{ parent() }}
 
 	<form method="get" class="row g-3 mb-3">
-		{% dv_field validator 'title_prefix' %}
-		{% dv_field validator 'callback' %}
-		{% dv_field validator 'back_url' %}
+		{% dv_field validator 'title_prefix' 'title_prefix' 'hidden' %}
+		{% dv_field validator 'callback' 'callback' 'hidden' %}
+		{% dv_field validator 'back_url' 'back_url' 'hidden' %}
 		<div class="col-9">
 			{% dv_field validator 'q' %}
 		</div>
@@ -33,7 +33,24 @@
 	</form>
 
 	{% if search_results is not null %}
-		<div class="alert alert-light">{{ "%d results found"|format(search_results|length) }}</div>
+		<div class="alert alert-light">
+			<div class="row">
+				<div class="col-6">{{ "%d results found"|format(search_results|length) }}</div>
+				{% if next_page_validator is defined %}
+					<div class="col-6 text-end">
+						<form method="get">
+							{% dv_field next_page_validator 'title_prefix' 'title_prefix' 'hidden' %}
+							{% dv_field next_page_validator 'callback' 'callback' 'hidden' %}
+							{% dv_field next_page_validator 'back_url' 'back_url' 'hidden' %}
+							{% dv_field next_page_validator 'start_at' 'start_at' 'hidden' %}
+							{% dv_field next_page_validator 'q' 'q' 'hidden' %}
+							{% dv_field next_page_validator 'platform' 'platform' 'hidden' %}
+							<button type="submit" class="btn btn-sm btn-warning">Next Page</button>
+						</form>
+					</div>
+				{% endif %}
+			</div>
+		</div>
 
 		{% if search_results is not empty %}
 			<table class="table table-striped table-hover">
@@ -67,11 +84,11 @@
 								{% if callback is not empty %}
 									{% do search_result_validator.validate(result, true) %}
 									<form method="post" action="{{ callback }}">
-										{% dv_field search_result_validator 'platform' %}
-										{% dv_field search_result_validator 'title' %}
-										{% dv_field search_result_validator 'artist_name' %}
-										{% dv_field search_result_validator 'cover_url' %}
-										{% dv_field search_result_validator 'platform_id' %}
+										{% dv_field search_result_validator 'platform' 'platform' 'hidden' %}
+										{% dv_field search_result_validator 'title' 'title' 'hidden' %}
+										{% dv_field search_result_validator 'artist_name' 'artist_name' 'hidden' %}
+										{% dv_field search_result_validator 'cover_url' 'cover_url' 'hidden' %}
+										{% dv_field search_result_validator 'platform_id' 'platform_id' 'hidden' %}
 										<button class="btn btn-primary">Select</button>
 									</form>
 								{% else %}
@@ -99,11 +116,11 @@
 						<td>
 							<form method="get" action="/Album/searchPlatform">
 								{% set search_validator = search.validator %}
-								{% dv_field search_validator 'platform' %}
-								{% dv_field search_validator 'title_prefix' %}
-								{% dv_field search_validator 'callback' %}
-								{% dv_field search_validator 'back_url' %}
-								{% dv_field search_validator 'q' %}
+								{% dv_field search_validator 'platform' 'platform' 'hidden' %}
+								{% dv_field search_validator 'title_prefix' 'title_prefix' 'hidden' %}
+								{% dv_field search_validator 'callback' 'callback' 'hidden' %}
+								{% dv_field search_validator 'back_url' 'back_url' 'hidden' %}
+								{% dv_field search_validator 'q' 'q' 'hidden' %}
 								<button class="btn btn-primary">Search Again</button>
 							</form>
 						</td>

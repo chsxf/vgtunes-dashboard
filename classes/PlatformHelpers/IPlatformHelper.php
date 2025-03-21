@@ -8,6 +8,9 @@ interface IPlatformHelper
 {
     public function getPlatform(): Platform;
     public function getLookUpURL(string $platformId): string;
-    public function search(string $query): array;
+    public function search(string $query, ?int $startAt = null): array;
     public function searchExactMatch(string $title, string $artistName): ?array;
+    public function supportsPagination(): bool;
+    public function nextPageStart(): ?int;
+    public function resultsPerPage(): int;
 }

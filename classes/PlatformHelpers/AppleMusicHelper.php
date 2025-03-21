@@ -2,6 +2,7 @@
 
 namespace PlatformHelpers;
 
+use chsxf\MFX\HttpStatusCodes;
 use chsxf\MFX\Services\IConfigService;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\KeyManagement\JWKFactory;
@@ -18,6 +19,8 @@ final class AppleMusicHelper implements IPlatformHelper
 
     private const string APPLE_MUSIC_LOOKUP_URL = "https://music.apple.com/album/{PLATFORM_ID}";
 
+    private ?int $nextPageIndex = null;
+
     public function __construct(private IConfigService $configService) {}
 
     public function getPlatform(): Platform
@@ -30,13 +33,14 @@ final class AppleMusicHelper implements IPlatformHelper
         return str_replace('{PLATFORM_ID}', $platformId, self::APPLE_MUSIC_LOOKUP_URL);
     }
 
-    public function search(string $query): array
+    public function search(string $query, ?int $startAt = null): array
     {
         $jsonWebToken = self::createJsonWebToken($this->configService->getValue('apple_music.key_id'), $this->configService->getValue('apple_music.key_path'), $this->configService->getValue('apple_music.team_id'));
 
         $query = http_build_query([
             'term' => $query,
-            'limit' => 25,
+            'limit' => $this->resultsPerPage(),
+            'offset' => $startAt ?? 0,
             'types' => 'albums'
         ]);
 
@@ -64,6 +68,16 @@ final class AppleMusicHelper implements IPlatformHelper
 
         $results = [];
         if (!empty($decodedJson['results']) && !empty($decodedJson['results']['albums'])) {
+            if (array_key_exists('next', $decodedJson['results']['albums'])) {
+                $queryParams = parse_url($decodedJson['results']['albums']['next'], PHP_URL_QUERY);
+                if (!empty($queryParams)) {
+                    parse_str($queryParams, $parsedQueryParams);
+                    if (array_key_exists('offset', $parsedQueryParams) && ctype_digit($parsedQueryParams['offset'])) {
+                        $this->nextPageIndex = intval($parsedQueryParams['offset']);
+                    }
+                }
+            }
+
             foreach ($decodedJson['results']['albums']['data'] as $album) {
                 $albumAttributes = $album['attributes'];
 
@@ -96,5 +110,20 @@ final class AppleMusicHelper implements IPlatformHelper
         $token = $serializer->serialize($jws, 0);
 
         return $token;
+    }
+
+    public function supportsPagination(): bool
+    {
+        return true;
+    }
+
+    public function nextPageStart(): ?int
+    {
+        return $this->nextPageIndex;
+    }
+
+    public function resultsPerPage(): int
+    {
+        return 25;
     }
 }

@@ -41,6 +41,7 @@ final class Album extends BaseRouteProvider
     private const string PLATFORM_ID_FIELD = 'platform_id';
     private const string LAST_FEATURED_FIELD = 'last_featured';
     private const string BACK_URL_FIELD = 'back_url';
+    private const string START_AT_FIELD = 'start_at';
 
     private const string PREVIOUS_SEARCHES = 'previous_searches';
 
@@ -192,9 +193,10 @@ final class Album extends BaseRouteProvider
     public function searchPlatform(): RequestResult
     {
         $validator = new DataValidator();
-        $validator->createField(self::CALLBACK_FIELD, FieldType::HIDDEN, required: false);
-        $validator->createField(self::BACK_URL_FIELD, FieldType::HIDDEN, required: false);
-        $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::HIDDEN, required: false);
+        $validator->createField(self::CALLBACK_FIELD, FieldType::TEXT, required: false);
+        $validator->createField(self::BACK_URL_FIELD, FieldType::TEXT, required: false);
+        $validator->createField(self::START_AT_FIELD, FieldType::POSITIVEZERO_INTEGER, defaultValue: 0, required: false);
+        $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::TEXT, required: false);
         $validator->createField(self::QUERY_FIELD, FieldType::TEXT, '', extras: ['class' => 'form-control']);
         $f = $validator->createField(self::PLATFORM_FIELD, FieldType::SELECT, Platform::deezer->value, required: false, extras: ['class' => 'form-select']);
         if ($f instanceof WithOptions) {
@@ -209,22 +211,27 @@ final class Album extends BaseRouteProvider
             }
         }
 
+        $nextPageStartAt = null;
+
         $searchResults = null;
         $hasQuery = !empty(trim($_GET[self::QUERY_FIELD] ?? ''));
         if ($validator->validate($_GET, silent: !$hasQuery)) {
             if ($hasQuery) {
-                if (!in_array($validator[self::QUERY_FIELD], $previousSearches)) {
-                    if (count($previousSearches) >= 10) {
-                        $previousSearches = array_slice($previousSearches, 1);
-                    }
-                    $previousSearches[] = $validator[self::QUERY_FIELD];
-                    setcookie(self::PREVIOUS_SEARCHES, json_encode($previousSearches), time() + 86400 * 30, '/Album/searchPlatform');
+                $searchQuery = $validator[self::QUERY_FIELD];
+
+                if (count($previousSearches) >= 10) {
+                    $previousSearches = array_slice($previousSearches, 1);
                 }
+                $previousSearches = array_filter($previousSearches, fn($item) => strcasecmp($item, $searchQuery) != 0);
+                $previousSearches[] = $searchQuery;
+                setcookie(self::PREVIOUS_SEARCHES, json_encode($previousSearches), time() + 86400 * 30, '/Album/searchPlatform');
 
                 try {
                     $platform = Platform::from($validator[self::PLATFORM_FIELD] ?? Platform::deezer->value);
                     $platformHelper = PlatformHelperFactory::get($platform, $this->serviceProvider);
-                    $searchResults = $platformHelper->search($validator[self::QUERY_FIELD]);
+
+                    $searchStartAt = $platformHelper->supportsPagination() ? intval($validator[self::START_AT_FIELD]) : null;
+                    $searchResults = $platformHelper->search($searchQuery, $searchStartAt);
 
                     if (!empty($searchResults)) {
                         $dbService = $this->serviceProvider->getDatabaseService();
@@ -250,6 +257,10 @@ final class Album extends BaseRouteProvider
                                 $result->existsInDatabase = true;
                             }
                         }
+
+                        if ($platformHelper->supportsPagination()) {
+                            $nextPageStartAt = $platformHelper->nextPageStart();
+                        }
                     }
                 } catch (Exception $e) {
                     trigger_error($e->getMessage());
@@ -274,6 +285,9 @@ final class Album extends BaseRouteProvider
             'callback' => $_REQUEST[self::CALLBACK_FIELD] ?? null,
             'previous_searches' => $previousSearches
         ];
+        if ($nextPageStartAt !== null) {
+            $requestData['next_page_validator'] = self::createOtherSearchPageValidator($validator, $nextPageStartAt);
+        }
         if (!empty($_REQUEST[self::BACK_URL_FIELD])) {
             $requestData[self::BACK_URL_FIELD] = $_REQUEST[self::BACK_URL_FIELD];
         }
@@ -284,23 +298,35 @@ final class Album extends BaseRouteProvider
     private static function createSearchResultValidator(?string $platform = null): DataValidator
     {
         $validator = new DataValidator();
-        $validator->createField(self::PLATFORM_FIELD, FieldType::HIDDEN, $platform)
+        $validator->createField(self::PLATFORM_FIELD, FieldType::TEXT, $platform)
             ->addFilter(new In(array_keys(Platform::PLATFORMS)));
-        $validator->createField(self::TITLE_FIELD, FieldType::HIDDEN);
-        $validator->createField(self::ARTIST_NAME_FIELD, FieldType::HIDDEN);
-        $validator->createField(self::COVER_URL_FIELD, FieldType::HIDDEN, required: false);
-        $validator->createField(self::PLATFORM_ID_FIELD, FieldType::HIDDEN);
+        $validator->createField(self::TITLE_FIELD, FieldType::TEXT);
+        $validator->createField(self::ARTIST_NAME_FIELD, FieldType::TEXT);
+        $validator->createField(self::COVER_URL_FIELD, FieldType::TEXT, required: false);
+        $validator->createField(self::PLATFORM_ID_FIELD, FieldType::TEXT);
         return $validator;
     }
 
     private static function createPreviousSearchValidator(DataValidator $sourceValidator, string $query): DataValidator
     {
         $validator = new DataValidator();
-        $validator->createField(self::PLATFORM_FIELD, FieldType::HIDDEN, $sourceValidator[self::PLATFORM_FIELD] ?? Platform::deezer->value);
-        $validator->createField(self::CALLBACK_FIELD, FieldType::HIDDEN, $sourceValidator[self::CALLBACK_FIELD], required: false);
-        $validator->createField(self::BACK_URL_FIELD, FieldType::HIDDEN, $sourceValidator[self::BACK_URL_FIELD], required: false);
-        $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::HIDDEN, $sourceValidator[self::TITLE_PREFIX_FIELD], required: false);
-        $validator->createField(self::QUERY_FIELD, FieldType::HIDDEN, $query);
+        $validator->createField(self::PLATFORM_FIELD, FieldType::TEXT, $sourceValidator[self::PLATFORM_FIELD] ?? Platform::deezer->value);
+        $validator->createField(self::CALLBACK_FIELD, FieldType::TEXT, $sourceValidator[self::CALLBACK_FIELD], required: false);
+        $validator->createField(self::BACK_URL_FIELD, FieldType::TEXT, $sourceValidator[self::BACK_URL_FIELD], required: false);
+        $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::TEXT, $sourceValidator[self::TITLE_PREFIX_FIELD], required: false);
+        $validator->createField(self::QUERY_FIELD, FieldType::TEXT, $query);
+        return $validator;
+    }
+
+    private static function createOtherSearchPageValidator(DataValidator $sourceValidator, int $startAt): DataValidator
+    {
+        $validator = new DataValidator();
+        $validator->createField(self::PLATFORM_FIELD, FieldType::TEXT, $sourceValidator[self::PLATFORM_FIELD] ?? Platform::deezer->value);
+        $validator->createField(self::CALLBACK_FIELD, FieldType::TEXT, $sourceValidator[self::CALLBACK_FIELD], required: false);
+        $validator->createField(self::BACK_URL_FIELD, FieldType::TEXT, $sourceValidator[self::BACK_URL_FIELD], required: false);
+        $validator->createField(self::START_AT_FIELD, FieldType::POSITIVEZERO_INTEGER, $startAt, required: false);
+        $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::TEXT, $sourceValidator[self::TITLE_PREFIX_FIELD], required: false);
+        $validator->createField(self::QUERY_FIELD, FieldType::TEXT, $sourceValidator[self::QUERY_FIELD]);
         return $validator;
     }
 
