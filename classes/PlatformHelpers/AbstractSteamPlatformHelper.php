@@ -99,4 +99,9 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
     {
         return null;
     }
+
+    public function resultsPerPage(): int
+    {
+        return -1;
+    }
 }
