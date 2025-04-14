@@ -56,7 +56,7 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
             } else {
                 $lengthDistance = PHP_INT_MAX;
             }
-            $results[] = [new PlatformAlbum($dbResult['name'], $id, 'n/a', $imgUrl), $lengthDistance];
+            $results[] = [new PlatformAlbum($dbResult['name'], $id, ['n/a'], $imgUrl), $lengthDistance];
         }
         usort($results, function ($itemA, $itemB) {
             $comp = $itemA[1] <=> $itemB[1];
@@ -69,7 +69,7 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
         return array_map(fn($item) => $item[0], $results);
     }
 
-    public function searchExactMatch(string $title, string $ignoredArtistName): ?array
+    public function searchExactMatch(string $title, array $ignoredArtists): ?array
     {
         $query = $title;
 

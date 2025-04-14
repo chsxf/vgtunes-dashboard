@@ -80,21 +80,30 @@ class BandcampDatabaseUpdater extends AbstractSequentialAutomatedAction
 
             $platformHelper = PlatformHelperFactory::get(Platform::bandcamp, $this->coreServiceProvider);
 
-            $sql = "SELECT `al`.`title`, `ar`.`name` AS `artist_name`
-                        FROM `albums` AS `al`
-                        LEFT JOIN `artists` AS `ar`
-                            ON `ar`.`id` = `al`.`artist_id`
-                        WHERE `al`.`id` = ?";
-            if (($album = $dbConn->getRow($sql, \PDO::FETCH_ASSOC, $currentAlbumId)) === false) {
+            $sql = "SELECT `title` FROM `albums` WHERE `id` = ?";
+            if (($albumTitle = $dbConn->getValue($sql, $currentAlbumId)) === false) {
                 throw new Exception('  Unable to fetch album details');
             }
-            $stepData->addLogLine("  Album: {$album['title']} - {$album['artist_name']}");
 
-            $exactMatch = $platformHelper->searchExactMatch($album['title'], $album['artist_name']);
+            $sql = "SELECT `ar`.`name`
+                        FROM `album_artists` AS `aa`
+                        LEFT JOIN `artists` AS `ar`
+                            ON `aa`.`artist_id` = `ar`.`id`
+                        WHERE `aa`.`album_id` = ?
+                        ORDER BY `ar`.`name`";
+            if (($artists = $dbConn->getColumn($sql, $currentAlbumId)) === false) {
+                throw new Exception('  Unable to fetch album artists');
+            }
+            $displayableArtists = implode(', ', $artists);
+
+            $stepData->addLogLine("  Album: {$albumTitle} - {$displayableArtists}");
+
+            $exactMatch = $platformHelper->searchExactMatch($albumTitle, $artists);
             if ($exactMatch === null) {
                 $stepData->addLogLine('  No match for this album', AutomatedActionLogType::warning);
             } else {
-                $stepData->addLogLine("  Match found: {$exactMatch['title']} - {$exactMatch['artist_name']}");
+                $matchArtists = implode(', ', $exactMatch['artists']);
+                $stepData->addLogLine("  Match found: {$exactMatch['title']} - {$matchArtists}");
 
                 $sql = "INSERT INTO `album_instances` VALUE (?, ?, ?)";
                 if ($dbConn->exec($sql, $currentAlbumId, Platform::bandcamp->value, $exactMatch['platform_id']) === false) {

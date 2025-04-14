@@ -2,7 +2,7 @@
 	<td><img src="{{ album.cover_url}}" height="50"/></td>
 	<th scope="row">{{ album.id }}</th>
 	<td>{{ album.title }}</td>
-	<td>{{ album.artist_name }}</td>
+	<td>{{ album.artists|join(', ') }}</td>
 	<td>
 		{% for platform in album.platforms %}
 			<img src="/img/platforms/{{ platform }}-64px.png" width="24" title="{{ platforms[platform] }}">

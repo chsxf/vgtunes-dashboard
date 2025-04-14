@@ -32,17 +32,22 @@ final class JsonGenerator extends BaseRouteProvider
         $sql = "SELECT * FROM `albums` ORDER BY `title` ASC";
         $albums = $dbConn->getIndexed($sql, 'id', \PDO::FETCH_ASSOC);
         $albums = array_map(function ($album) use ($artists) {
-            $album['artists'] = [$artists[$album['artist_id']]['slug']];
+            $album['artists'] = [];
             $album['instances'] = [];
-            unset($album['id'], $album['artist_id']);
+            unset($album['id']);
             return $album;
         }, $albums);
 
         $sql = "SELECT * FROM `album_instances`";
         $instances = $dbConn->get($sql, \PDO::FETCH_ASSOC);
-
         foreach ($instances as $instance) {
             $albums[$instance['album_id']]['instances'][$instance['platform']] = $instance['platform_id'];
+        }
+
+        $sql = "SELECT * FROM `album_artists`";
+        $albumArtists = $dbConn->get($sql, \PDO::FETCH_ASSOC);
+        foreach ($albumArtists as $albumArtist) {
+            $albums[$albumArtist['album_id']]['artists'][] = $artists[$albumArtist['artist_id']]['name'];
         }
 
         $remappedArtists = [];

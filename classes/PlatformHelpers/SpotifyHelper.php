@@ -75,7 +75,7 @@ final class SpotifyHelper implements IPlatformHelper
 
         $results = [];
         foreach ($decodedJson['albums']['items'] as $album) {
-            $results[] = new PlatformAlbum($album['name'], $album['id'], $album['artists'][0]['name'], $album['images'][0]['url']);
+            $results[] = new PlatformAlbum($album['name'], $album['id'], [$album['artists'][0]['name']], $album['images'][0]['url']);
         }
         return $results;
     }

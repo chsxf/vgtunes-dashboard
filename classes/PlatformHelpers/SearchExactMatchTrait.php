@@ -6,7 +6,7 @@ use PlatformAlbum;
 
 trait SearchExactMatchTrait
 {
-    public function searchExactMatch(string $title, string $artistName): ?array
+    public function searchExactMatch(string $title, array $artists): ?array
     {
         $query = $title;
 
@@ -17,7 +17,20 @@ trait SearchExactMatchTrait
 
             $passQueryResults = $this->search($query);
             foreach ($passQueryResults as $result) {
-                if ($result->title == $query && stripos($result->artist_name, $artistName) !== false) {
+                $sameTitle = stripos($result->title, $query) === 0;
+
+                $sameArtists = false;
+                if (!empty($artists)) {
+                    $sameArtists = true;
+                    foreach ($artists as $artist) {
+                        if (!$result->hasArtist($artist)) {
+                            $sameArtists = false;
+                            break;
+                        }
+                    }
+                }
+
+                if ($sameTitle && $sameArtists) {
                     return iterator_to_array($result);
                 }
             }

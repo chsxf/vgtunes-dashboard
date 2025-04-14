@@ -84,7 +84,7 @@ final class AppleMusicHelper implements IPlatformHelper
                 $coverUrl = $albumAttributes['artwork']['url'];
                 $coverUrl = str_replace(['{w}', '{h}'], 1000, $coverUrl);
 
-                $results[] = new PlatformAlbum($albumAttributes['name'], $album['id'], $albumAttributes['artistName'], $coverUrl);
+                $results[] = new PlatformAlbum($albumAttributes['name'], $album['id'], [$albumAttributes['artistName']], $coverUrl);
             }
         }
         return $results;

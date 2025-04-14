@@ -114,3 +114,22 @@ ALTER TABLE `album_instances`
 
 ALTER TABLE `steam_products`
     CHANGE `app_id` `app_id` MEDIUMINT UNSIGNED NOT NULL; 
+
+-- [VERSION: 13]
+
+CREATE TABLE `album_artists` (
+    `album_id` INT UNSIGNED NOT NULL,
+    `artist_id` INT UNSIGNED NOT NULL,
+    PRIMARY KEY (`album_id`, `artist_id`)
+) ENGINE = InnoDB;
+
+ALTER TABLE `album_artists`
+    ADD CONSTRAINT `album_artists_ibfk_1` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    ADD CONSTRAINT `album_artists_ibfk_2` FOREIGN KEY (`artist_id`) REFERENCES `artists`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+INSERT INTO `album_artists`
+    SELECT `id`, `artist_id` FROM `albums`;
+
+ALTER TABLE `albums`
+    DROP FOREIGN KEY `albums_ibfk_1`,
+    DROP `artist_id`;

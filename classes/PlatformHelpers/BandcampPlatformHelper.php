@@ -71,7 +71,7 @@ final class BandcampPlatformHelper implements IPlatformHelper
             $newPath = "{$pathWoFilename}/a{$filename}";
             $imgUrl = "{$url['scheme']}://{$url['host']}{$newPath}";
 
-            $results[] = new PlatformAlbum($album['name'], $id, $album['band_name'], $imgUrl);
+            $results[] = new PlatformAlbum($album['name'], $id, [$album['band_name']], $imgUrl);
         }
         return $results;
     }

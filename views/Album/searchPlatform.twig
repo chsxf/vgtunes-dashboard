@@ -79,14 +79,14 @@
 									{% endif %}
 								</small>
 							</td>
-							<td class="align-middle">{{ result.artist_name }}</td>
+							<td class="align-middle">{{ result.artists|join(', ') }}</td>
 							<td class="align-middle">
 								{% if callback is not empty %}
-									{% do search_result_validator.validate(result, true) %}
+									{% do result.applyToValidator(search_result_validator) %}
 									<form method="post" action="{{ callback }}">
 										{% dv_field search_result_validator 'platform' 'platform' 'hidden' %}
 										{% dv_field search_result_validator 'title' 'title' 'hidden' %}
-										{% dv_field search_result_validator 'artist_name' 'artist_name' 'hidden' %}
+										{% dv_field search_result_validator 'artists' 'artists' 'hidden' %}
 										{% dv_field search_result_validator 'cover_url' 'cover_url' 'hidden' %}
 										{% dv_field search_result_validator 'platform_id' 'platform_id' 'hidden' %}
 										<button class="btn btn-primary">Select</button>

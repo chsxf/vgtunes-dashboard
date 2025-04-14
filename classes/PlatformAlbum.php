@@ -1,12 +1,14 @@
 <?php
 
+use chsxf\MFX\DataValidator;
+
 final class PlatformAlbum implements IteratorAggregate
 {
     public const array CLEAN_REGEXP = [
         null,
         '/\([^)]+\)/',
         '/-\s+EP\s*$/',
-        "/[^'a-z0-9\s]/i",
+        "/[^':a-z0-9\s]/i",
         '/\s(OST|EP)$/i',
         '/Original( .+)? Soundtrack/i',
         '/vol\.? [ixvlm0-9]/i'
@@ -17,7 +19,7 @@ final class PlatformAlbum implements IteratorAggregate
     public function __construct(
         public readonly string $title,
         public readonly string $platform_id,
-        public readonly string $artist_name,
+        public readonly array $artists,
         public readonly ?string $cover_url
     ) {
         $this->existsInDatabase = false;
@@ -37,5 +39,22 @@ final class PlatformAlbum implements IteratorAggregate
             }
         }
         return $cleanedTitle;
+    }
+
+    public function hasArtist(string $artistName): bool
+    {
+        foreach ($this->artists as $artist) {
+            if (stripos($artist, $artistName) === 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function applyToValidator(DataValidator $dataValidator)
+    {
+        $asArray = iterator_to_array($this);
+        $asArray['artists'] = json_encode($asArray['artists']);
+        $dataValidator->validate($asArray, true);
     }
 }

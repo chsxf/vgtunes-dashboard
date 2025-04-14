@@ -108,7 +108,7 @@ class SteamDatabaseUpdater extends AbstractSequentialAutomatedAction
             }
             $stepData->addLogLine("  Album: {$album['title']}");
 
-            $exactMatch = $platformHelper->searchExactMatch($album['title'], '<ignored>');
+            $exactMatch = $platformHelper->searchExactMatch($album['title'], []);
             if ($exactMatch === null) {
                 $stepData->addLogLine('  No match for this album', AutomatedActionLogType::warning);
             } else {

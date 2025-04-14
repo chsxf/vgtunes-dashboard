@@ -35,7 +35,7 @@
 
 		<div class="col-10">
 			<h2>{{ album_details.title }}</h2>
-			<h3 class="text-secondary">{{ album_details.artist_name }}</h3>
+			<h3 class="text-secondary">{{ album_details.artists|join(', ') }}</h3>
 			<hr/>
 			{% for platform, platform_name in platforms %}
 				<div class="row mb-3">
@@ -57,7 +57,7 @@
 									</div>
 									<div class="col-10">
 										{{ platform_details.title }}
-										<br/>{{ platform_details.artist_name }}
+										<br/>{{ platform_details.artists|join(', ') }}
 									</div>
 								</div>
 							{% endif %}

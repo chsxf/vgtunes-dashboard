@@ -35,7 +35,7 @@ final class Album extends BaseRouteProvider
     private const string CALLBACK_FIELD = 'callback';
     private const string TITLE_PREFIX_FIELD = 'title_prefix';
     private const string TITLE_FIELD = 'title';
-    private const string ARTIST_NAME_FIELD = 'artist_name';
+    private const string ARTISTS_FIELD = 'artists';
     private const string COVER_URL_FIELD = 'cover_url';
     private const string INSTANCES_FIELD = 'instances';
     private const string PLATFORM_ID_FIELD = 'platform_id';
@@ -68,12 +68,14 @@ final class Album extends BaseRouteProvider
                 return RequestResult::buildStatusRequestResult();
             }
 
+            $decodedArtists = json_decode($validator[self::ARTISTS_FIELD]);
+
             if (isset($sessionService[self::SESS_ALBUM_DATA]) && $sessionService[self::SESS_ALBUM_DATA][self::FUNCTION] == __FUNCTION__) {
                 $sessionAlbumData = $sessionService[self::SESS_ALBUM_DATA];
                 $sessionAlbumData[self::INSTANCES_FIELD][$validator[self::PLATFORM_FIELD]] = [
                     self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
                     self::TITLE_FIELD => $validator[self::TITLE_FIELD],
-                    self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
+                    self::ARTISTS_FIELD => $decodedArtists,
                     self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
                     self::SAVED_DATA => false
                 ];
@@ -85,13 +87,13 @@ final class Album extends BaseRouteProvider
                 $sessionAlbumData = [
                     self::FUNCTION => __FUNCTION__,
                     self::TITLE_FIELD => $validator[self::TITLE_FIELD],
-                    self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
+                    self::ARTISTS_FIELD => $decodedArtists,
                     self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
                     self::INSTANCES_FIELD => [
                         $validator[self::PLATFORM_FIELD] => [
                             self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
                             self::TITLE_FIELD => $validator[self::TITLE_FIELD],
-                            self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
+                            self::ARTISTS_FIELD => $decodedArtists,
                             self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
                             self::SAVED_DATA => false
                         ]
@@ -109,7 +111,9 @@ final class Album extends BaseRouteProvider
             foreach (Platform::cases() as $platform) {
                 if (!array_key_exists($platform->value, $sessionAlbumData[self::INSTANCES_FIELD])) {
                     $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
-                    $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTIST_NAME_FIELD]);
+                    if (($exactMatch = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTISTS_FIELD])) !== null) {
+                        $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = $exactMatch;
+                    }
                 }
             }
 
@@ -134,7 +138,7 @@ final class Album extends BaseRouteProvider
 
         $albumId = intval($params[0]);
         try {
-            $albumDetails = self::getSavedAlbumDetails($dbConn, $this->serviceProvider->getConfigService(), $albumId);
+            self::getSavedAlbumDetails($dbConn, $this->serviceProvider->getConfigService(), $albumId);
         } catch (Exception) {
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
         }
@@ -143,6 +147,8 @@ final class Album extends BaseRouteProvider
         if (!$validator->validate($_POST)) {
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
         }
+
+        $decodedArtists = json_decode($validator[self::ARTISTS_FIELD]);
 
         if (
             isset($sessionService[self::SESS_ALBUM_DATA])
@@ -154,7 +160,7 @@ final class Album extends BaseRouteProvider
             $sessionAlbumData[self::INSTANCES_FIELD][$validator[self::PLATFORM_FIELD]] = [
                 self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
                 self::TITLE_FIELD => $validator[self::TITLE_FIELD],
-                self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
+                self::ARTISTS_FIELD => $decodedArtists,
                 self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
                 self::SAVED_DATA => false
             ];
@@ -166,7 +172,7 @@ final class Album extends BaseRouteProvider
                     $validator[self::PLATFORM_FIELD] => [
                         self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
                         self::TITLE_FIELD => $validator[self::TITLE_FIELD],
-                        self::ARTIST_NAME_FIELD => $validator[self::ARTIST_NAME_FIELD],
+                        self::ARTISTS_FIELD => $decodedArtists,
                         self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
                         self::SAVED_DATA => false
                     ]
@@ -301,7 +307,7 @@ final class Album extends BaseRouteProvider
         $validator->createField(self::PLATFORM_FIELD, FieldType::TEXT, $platform)
             ->addFilter(new In(array_keys(Platform::PLATFORMS)));
         $validator->createField(self::TITLE_FIELD, FieldType::TEXT);
-        $validator->createField(self::ARTIST_NAME_FIELD, FieldType::TEXT);
+        $validator->createField(self::ARTISTS_FIELD, FieldType::TEXT);
         $validator->createField(self::COVER_URL_FIELD, FieldType::TEXT, required: false);
         $validator->createField(self::PLATFORM_ID_FIELD, FieldType::TEXT);
         return $validator;
@@ -332,11 +338,7 @@ final class Album extends BaseRouteProvider
 
     private static function getSavedAlbumDetails(DatabaseConnectionInstance $dbConn, IConfigService $configService, int $albumId): array
     {
-        $sql = "SELECT `al`.*, `ar`.`name` AS `artist_name`
-                            FROM `albums` AS `al`
-                            LEFT JOIN `artists` AS `ar`
-                                ON `al`.`artist_id` = `ar`.`id`
-                            WHERE `al`.`id` = ?";
+        $sql = "SELECT * FROM `albums` WHERE `id` = ?";
         if (($albumRow = $dbConn->getRow($sql, \PDO::FETCH_ASSOC, $albumId)) === false) {
             throw new Exception('An error has occured while querying album details', E_USER_ERROR);
         }
@@ -346,6 +348,15 @@ final class Album extends BaseRouteProvider
             throw new Exception("An error has occured while querying album's instances", E_USER_ERROR);
         }
 
+        $sql = "SELECT `ar`.`name`
+                    FROM `album_artists` AS `aa`
+                    LEFT JOIN `artists` AS `ar`
+                        ON `aa`.`artist_id` = `ar`.`id`
+                    WHERE `aa`.`album_id` = ?";
+        if (($artists = $dbConn->getColumn($sql, $albumId)) === false) {
+            throw new Exception("An error has occured while querying album's artists", E_USER_ERROR);
+        }
+
         $sql = "SELECT MAX(`featured_at`) FROM `featured_albums` WHERE `album_id` = ?";
         if (($lastFeatured = $dbConn->getValue($sql, $albumId)) === false) {
             throw new Exception("An error has occured while querying album's last feature timestamp", E_USER_ERROR);
@@ -353,6 +364,7 @@ final class Album extends BaseRouteProvider
 
         $albumDetails = $albumRow;
         $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_500.webp", $configService->getValue('covers.base_url'), $albumRow['slug']);
+        $albumDetails[self::ARTISTS_FIELD] = $artists;
         $albumDetails[self::INSTANCES_FIELD] = array_map(fn($instance) => array_merge($instance, [self::SAVED_DATA => true]), $instances);
         $albumDetails[self::LAST_FEATURED_FIELD] = $lastFeatured;
         return $albumDetails;
@@ -466,7 +478,10 @@ final class Album extends BaseRouteProvider
                     throw new Exception('At least one platform ID must be filled in');
                 }
 
-                $artistId = Artist::getOrCreateArtistId($dbConn, $sessionAlbumData[self::ARTIST_NAME_FIELD]);
+                $artistsIds = [];
+                foreach ($sessionAlbumData[self::ARTISTS_FIELD] as $artist) {
+                    $artistIds[] = Artist::getOrCreateArtistId($dbConn, $artist);
+                }
 
                 $slug = null;
                 while ($slug === null) {
@@ -482,11 +497,18 @@ final class Album extends BaseRouteProvider
                     }
                 }
 
-                $sql = 'INSERT INTO `albums` (`slug`, `title`, `artist_id`) VALUE (?, ?, ?)';
-                if (!$dbConn->exec($sql, $slug, $sessionAlbumData[self::TITLE_FIELD], $artistId)) {
+                $sql = 'INSERT INTO `albums` (`slug`, `title`) VALUE (?, ?)';
+                if (!$dbConn->exec($sql, $slug, $sessionAlbumData[self::TITLE_FIELD])) {
                     throw new Exception('A database error has occured');
                 }
                 $albumId = $dbConn->lastInsertId();
+
+                foreach ($artistIds as $artistId) {
+                    $sql = "INSERT INTO `album_artists` VALUE (?, ?)";
+                    if ((!$dbConn->exec($sql, $albumId, $artistId))) {
+                        throw new Exception('A database error has occured');
+                    }
+                }
 
                 foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
                     if (!empty($instanceData)) {

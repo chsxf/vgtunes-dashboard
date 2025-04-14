@@ -19,12 +19,10 @@ final class FeaturedAlbums extends BaseRouteProvider
     {
         $dbConn = $this->serviceProvider->getDatabaseService()->open();
 
-        $sql = "SELECT `al`.`id`, `al`.`title`, `al`.`slug`, `ar`.`name` AS `artist_name`
+        $sql = "SELECT `al`.`id`, `al`.`title`, `al`.`slug`
                     FROM `featured_albums` AS `fa`
                     LEFT JOIN `albums` AS `al`
                         ON `fa`.`album_id` = `al`.`id`
-                    LEFT JOIN `artists` AS `ar`
-                        ON `al`.`artist_id` = `ar`.`id`
                     ORDER BY `fa`.`featured_at` DESC";
         if (($featuredAlbums = $dbConn->get($sql, \PDO::FETCH_ASSOC)) === false) {
             trigger_error('An error has occured while recovering featured albums');
@@ -39,6 +37,7 @@ final class FeaturedAlbums extends BaseRouteProvider
 
             $albumIds = array_map(fn($album) => $album['id'], $featuredAlbums);
             $marks = implode(',', array_pad([], count($albumIds), '?'));
+
             $sql = "SELECT `album_id`, `platform` FROM `album_instances` WHERE `album_id` IN ({$marks})";
             if (($albumPlatforms = $dbConn->get($sql, \PDO::FETCH_NUM, $albumIds)) === false) {
                 trigger_error('An error has occured while recovering featured albums');
@@ -52,8 +51,28 @@ final class FeaturedAlbums extends BaseRouteProvider
                 }
                 $platformsByAlbum[$albumId][] = $platform;
             }
-            $featuredAlbums = array_map(function ($album) use ($platformsByAlbum) {
+
+            $sql = "SELECT `aa`.`album_id`, `ar`.`name`
+                        FROM `album_artists` as `aa`
+                        LEFT JOIN `artists` AS `ar`
+                            ON `aa`.`artist_id` = `ar`.`id`
+                        WHERE `aa`.`album_id` IN ({$marks})";
+            if (($albumArtists = $dbConn->get($sql, \PDO::FETCH_NUM, $albumIds)) === false) {
+                trigger_error('An error has occured while recovering featured albums');
+                return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
+            }
+            $artistsByAlbum = [];
+            foreach ($albumArtists as $albumArtist) {
+                list($albumId, $artist) = $albumArtist;
+                if (!array_key_exists($albumId, $artistsByAlbum)) {
+                    $artistsByAlbum[$albumId] = [];
+                }
+                $artistsByAlbum[$albumId][] = $artist;
+            }
+
+            $featuredAlbums = array_map(function ($album) use ($platformsByAlbum, $artistsByAlbum) {
                 $album['platforms'] = $platformsByAlbum[$album['id']];
+                $album['artists'] = $artistsByAlbum[$album['id']];
                 return $album;
             }, $featuredAlbums);
         }
