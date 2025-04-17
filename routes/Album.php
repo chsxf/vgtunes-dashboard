@@ -84,16 +84,30 @@ final class Album extends BaseRouteProvider
                     $sessionAlbumData[self::COVER_URL_FIELD] = $validator[self::COVER_URL_FIELD];
                 }
             } else {
+                $initialPlatform = Platform::from($validator[self::PLATFORM_FIELD]);
+                $helper = PlatformHelperFactory::get($initialPlatform, $this->serviceProvider);
+                $platformAlbumDetails = $helper->getAlbumDetails($validator[self::PLATFORM_ID_FIELD]);
+                if ($platformAlbumDetails === false) {
+                    return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
+                }
+
+                $title = $validator[self::TITLE_FIELD];
+                $artists = $decodedArtists;
+                if ($platformAlbumDetails !== null) {
+                    $title = $platformAlbumDetails->title;
+                    $artists = $platformAlbumDetails->artists;
+                }
+
                 $sessionAlbumData = [
                     self::FUNCTION => __FUNCTION__,
-                    self::TITLE_FIELD => $validator[self::TITLE_FIELD],
-                    self::ARTISTS_FIELD => $decodedArtists,
+                    self::TITLE_FIELD => $title,
+                    self::ARTISTS_FIELD => $artists,
                     self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
                     self::INSTANCES_FIELD => [
                         $validator[self::PLATFORM_FIELD] => [
                             self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
-                            self::TITLE_FIELD => $validator[self::TITLE_FIELD],
-                            self::ARTISTS_FIELD => $decodedArtists,
+                            self::TITLE_FIELD => $title,
+                            self::ARTISTS_FIELD => $artists,
                             self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
                             self::SAVED_DATA => false
                         ]
@@ -497,8 +511,10 @@ final class Album extends BaseRouteProvider
                     }
                 }
 
-                $sql = 'INSERT INTO `albums` (`slug`, `title`) VALUE (?, ?)';
-                if (!$dbConn->exec($sql, $slug, $sessionAlbumData[self::TITLE_FIELD])) {
+                $featureFlags = ['bandcamp', 'steam', 'multi_artists'];
+
+                $sql = 'INSERT INTO `albums` (`slug`, `title`, `feature_flags`) VALUE (?, ?, ?)';
+                if (!$dbConn->exec($sql, $slug, $sessionAlbumData[self::TITLE_FIELD], implode(',', $featureFlags))) {
                     throw new Exception('A database error has occured');
                 }
                 $albumId = $dbConn->lastInsertId();

@@ -10,8 +10,9 @@ final class DeezerPlatformHelper implements IPlatformHelper
 {
     use SearchExactMatchTrait;
 
-    private const DEEZER_API_TEMPLATE_URL = "https://api.deezer.com/search/album";
-    private const DEEZER_ALBUM_LOOKUP_URL = "https://www.deezer.com/fr/album/{PLATFORM_ID}";
+    private const string API_SEARCH_URL = "https://api.deezer.com/search/album";
+    private const string API_ALBUM_URL = "https://api.deezer.com/album/" . IPlatformHelper::PLATFORM_ID_PLACEHOLDER;
+    private const string ALBUM_LOOKUP_URL = "https://www.deezer.com/fr/album/" . IPlatformHelper::PLATFORM_ID_PLACEHOLDER;
 
     private ?int $nextPageIndex = null;
 
@@ -22,7 +23,7 @@ final class DeezerPlatformHelper implements IPlatformHelper
 
     public function getLookUpURL(string $platformId): string
     {
-        return str_replace('{PLATFORM_ID}', $platformId, self::DEEZER_ALBUM_LOOKUP_URL);
+        return str_replace(IPlatformHelper::PLATFORM_ID_PLACEHOLDER, $platformId, self::ALBUM_LOOKUP_URL);
     }
 
     public function search(string $query, ?int $startAt = null): array
@@ -32,7 +33,7 @@ final class DeezerPlatformHelper implements IPlatformHelper
         }
 
         $buildQuery = ['q' => $query, 'limit' => $this->resultsPerPage(), 'index' => $startAt ?? 0];
-        $url = sprintf("%s?%s", self::DEEZER_API_TEMPLATE_URL, http_build_query($buildQuery));
+        $url = sprintf("%s?%s", self::API_SEARCH_URL, http_build_query($buildQuery));
 
         $rawSearchResults = file_get_contents($url);
         try {
@@ -56,6 +57,26 @@ final class DeezerPlatformHelper implements IPlatformHelper
             $entries[] = new PlatformAlbum($entry['title'], $entry['id'], [$entry['artist']['name']], $entry['cover_xl']);
         }
         return $entries;
+    }
+
+    public function getAlbumDetails(string $albumId): ?PlatformAlbum
+    {
+        $url = str_replace(IPlatformHelper::PLATFORM_ID_PLACEHOLDER, $albumId, self::API_ALBUM_URL);
+
+        $rawResult = file_get_contents($url);
+        try {
+            $decodedResult = json_decode($rawResult, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+        } catch (JsonException $e) {
+            throw new PlatformHelperException('An error has occured while parsing album details', previous: $e);
+        }
+
+        $artists = [];
+        foreach ($decodedResult['contributors'] as $artist) {
+            if ($artist['type'] == 'artist' && $artist['role'] == "Main") {
+                $artists[] = $artist['name'];
+            }
+        }
+        return new PlatformAlbum($decodedResult['title'], $albumId, $artists, $decodedResult['cover_xl']);
     }
 
     public function supportsPagination(): bool

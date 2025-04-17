@@ -76,6 +76,11 @@ final class BandcampPlatformHelper implements IPlatformHelper
         return $results;
     }
 
+    public function getAlbumDetails(string $albumId): PlatformAlbum|false|null
+    {
+        return null;
+    }
+
     public function supportsPagination(): bool
     {
         return false;

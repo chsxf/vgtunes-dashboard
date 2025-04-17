@@ -133,3 +133,8 @@ INSERT INTO `album_artists`
 ALTER TABLE `albums`
     DROP FOREIGN KEY `albums_ibfk_1`,
     DROP `artist_id`;
+
+-- [VERSION: 14]
+
+ALTER TABLE `albums`
+    ADD `feature_flags` SET('bandcamp','steam','multi_artists') NOT NULL DEFAULT 'bandcamp,steam' AFTER `title`;

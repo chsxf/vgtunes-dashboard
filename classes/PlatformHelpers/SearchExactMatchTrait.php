@@ -19,18 +19,17 @@ trait SearchExactMatchTrait
             foreach ($passQueryResults as $result) {
                 $sameTitle = stripos($result->title, $query) === 0;
 
-                $sameArtists = false;
+                $hasSomeArtists = false;
                 if (!empty($artists)) {
-                    $sameArtists = true;
                     foreach ($artists as $artist) {
-                        if (!$result->hasArtist($artist)) {
-                            $sameArtists = false;
+                        if ($result->hasArtist($artist)) {
+                            $hasSomeArtists = true;
                             break;
                         }
                     }
                 }
 
-                if ($sameTitle && $sameArtists) {
+                if ($sameTitle && $hasSomeArtists) {
                     return iterator_to_array($result);
                 }
             }

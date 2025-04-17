@@ -13,11 +13,12 @@ use JsonException;
 use Platform;
 use PlatformAlbum;
 
+// https://developer.apple.com/documentation/applemusicapi
 final class AppleMusicHelper implements IPlatformHelper
 {
-    use SearchExactMatchTrait;
-
-    private const string APPLE_MUSIC_LOOKUP_URL = "https://music.apple.com/album/{PLATFORM_ID}";
+    private const string API_SEARCH_URL = "https://api.music.apple.com/v1/catalog/us/search";
+    private const string API_ALBUM_URL = "https://api.music.apple.com/v1/catalog/us/albums/" . IPlatformHelper::PLATFORM_ID_PLACEHOLDER;
+    private const string ALBUM_LOOKUP_URL = "https://music.apple.com/album/" . IPlatformHelper::PLATFORM_ID_PLACEHOLDER;
 
     private ?int $nextPageIndex = null;
 
@@ -30,12 +31,12 @@ final class AppleMusicHelper implements IPlatformHelper
 
     public function getLookUpURL(string $platformId): string
     {
-        return str_replace('{PLATFORM_ID}', $platformId, self::APPLE_MUSIC_LOOKUP_URL);
+        return str_replace(IPlatformHelper::PLATFORM_ID_PLACEHOLDER, $platformId, self::ALBUM_LOOKUP_URL);
     }
 
     public function search(string $query, ?int $startAt = null): array
     {
-        $jsonWebToken = self::createJsonWebToken($this->configService->getValue('apple_music.key_id'), $this->configService->getValue('apple_music.key_path'), $this->configService->getValue('apple_music.team_id'));
+        $jsonWebToken = $this->createJsonWebToken();
 
         $query = http_build_query([
             'term' => $query,
@@ -44,7 +45,7 @@ final class AppleMusicHelper implements IPlatformHelper
             'types' => 'albums'
         ]);
 
-        $url = "https://api.music.apple.com/v1/catalog/us/search?{$query}";
+        $url = sprintf("%s?%s", self::API_SEARCH_URL, $query);
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -90,8 +91,97 @@ final class AppleMusicHelper implements IPlatformHelper
         return $results;
     }
 
-    private static function createJsonWebToken(string $keyId, string $keyPath, string $providerId): string
+    public function searchExactMatch(string $title, array $artists): ?array
     {
+        $query = $title;
+
+        foreach (PlatformAlbum::CLEAN_REGEXP as $replacementRegex) {
+            if ($replacementRegex !== null) {
+                $query = trim(preg_replace($replacementRegex, '', $query));
+            }
+
+            $passQueryResults = $this->search($query);
+            foreach ($passQueryResults as $result) {
+                $sameTitle = stripos($result->title, $query) === 0;
+
+                $sameArtists = false;
+                if (!empty($artists)) {
+                    $joinedArtists = implode(' & ', $artists);
+                    $sameArtists = strcasecmp($result->artists[0], $joinedArtists) === 0;
+                }
+
+                if ($sameTitle && $sameArtists) {
+                    return iterator_to_array($result);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public function getAlbumDetails(string $albumId): PlatformAlbum|false|null
+    {
+        $jsonWebToken = $this->createJsonWebToken();
+
+        $query = http_build_query(['include' => 'artists']);
+
+        $url = str_replace(IPlatformHelper::PLATFORM_ID_PLACEHOLDER, $albumId, self::API_ALBUM_URL);
+        $url = sprintf("%s?%s", $url, $query);
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ["Authorization: Bearer {$jsonWebToken}"]
+        ]);
+        $result = curl_exec($ch);
+        if ($result === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new PlatformHelperException($error);
+        } else if (($http_status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE)) != 200) {
+            throw new PlatformHelperException("Server responded with HTTP status code {$http_status}", HttpStatusCodes::tryFrom($http_status));
+        }
+        curl_close($ch);
+
+        try {
+            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+        } catch (JsonException $e) {
+            throw new PlatformHelperException('An error has occured while parsing search results.', previous: $e);
+        }
+
+        $albumDataContainer = $decodedJson['data'][0];
+
+        $artists = [];
+        foreach ($albumDataContainer['relationships']['artists']['data'] as $artist) {
+            if ($artist['type'] == 'artists') {
+                $artists[] = $artist['attributes']['name'];
+            }
+        }
+
+        $coverUrl = str_replace(['{w}', '{h}'], 1000, $albumDataContainer['attributes']['artwork']['url']);
+        return new PlatformAlbum($albumDataContainer['attributes']['name'], $albumId, $artists, $coverUrl);
+    }
+
+    public function supportsPagination(): bool
+    {
+        return true;
+    }
+
+    public function nextPageStart(): ?int
+    {
+        return $this->nextPageIndex;
+    }
+
+    public function resultsPerPage(): int
+    {
+        return 25;
+    }
+
+    private function createJsonWebToken(): string
+    {
+        $keyId = $this->configService->getValue('apple_music.key_id');
+        $keyPath = $this->configService->getValue('apple_music.key_path');
+        $providerId = $this->configService->getValue('apple_music.team_id');
+
         $jwk = JWKFactory::createFromKeyFile($keyPath, null, ['use' => 'sig']);
 
         $header = ['alg' => 'ES256', 'kid' => $keyId];
@@ -110,20 +200,5 @@ final class AppleMusicHelper implements IPlatformHelper
         $token = $serializer->serialize($jws, 0);
 
         return $token;
-    }
-
-    public function supportsPagination(): bool
-    {
-        return true;
-    }
-
-    public function nextPageStart(): ?int
-    {
-        return $this->nextPageIndex;
-    }
-
-    public function resultsPerPage(): int
-    {
-        return 25;
     }
 }

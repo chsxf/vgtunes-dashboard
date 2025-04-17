@@ -90,6 +90,11 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
         return null;
     }
 
+    public function getAlbumDetails(string $albumId): ?PlatformAlbum
+    {
+        return null;
+    }
+
     public function supportsPagination(): bool
     {
         return false;
