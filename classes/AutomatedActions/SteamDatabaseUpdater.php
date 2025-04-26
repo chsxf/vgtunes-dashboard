@@ -11,7 +11,6 @@ use PlatformHelpers\PlatformHelperFactory;
 
 class SteamDatabaseUpdater extends AbstractSequentialAutomatedAction
 {
-    private const string CURRENT_INDEX = 'current_index';
     private const string GAME_APP_IDS = 'game_app_ids';
     private const string SOUNDTRACK_APP_IDS = 'soundtrack_app_ids';
 
