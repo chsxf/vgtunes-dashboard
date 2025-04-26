@@ -18,7 +18,7 @@ function onRequestEnds(e) {
 
     switch (parsedResponse.status) {
       case "ok":
-        proceedWithNextStep();
+        setTimeout(() => proceedWithNextStep(), 500);
         break;
       case "cp":
         pushLog("Process complete.", "l");

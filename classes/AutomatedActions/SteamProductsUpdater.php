@@ -10,8 +10,6 @@ use PlatformHelpers\PlatformHelperException;
 
 class SteamProductsUpdater extends AbstractAutomatedAction
 {
-    private const string PROGRESS_DATA = 'progress_data';
-
     private const string TYPES_KEY = 'types';
     private const string CURRENT_TYPE_KEY = 'current_type';
     private const string PROGRESS_KEY = 'progress';

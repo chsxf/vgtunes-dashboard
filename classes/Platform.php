@@ -17,4 +17,9 @@ enum Platform: string
         self::steamGame->value => 'Steam (Game)',
         self::steamSoundtrack->value => 'Steam (Soundtrack)'
     ];
+
+    public function getLabel()
+    {
+        return self::PLATFORMS[$this->value];
+    }
 }

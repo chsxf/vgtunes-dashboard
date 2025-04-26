@@ -7,6 +7,8 @@ use chsxf\MFX\Services\ICoreServiceProvider;
 
 abstract class AbstractAutomatedAction
 {
+    protected const string PROGRESS_DATA = 'progress';
+
     public function __construct(protected readonly ICoreServiceProvider $coreServiceProvider) {}
 
     private function getSessionKey(string $key): string

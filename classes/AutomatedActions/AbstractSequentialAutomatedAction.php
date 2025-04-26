@@ -10,6 +10,9 @@ abstract class AbstractSequentialAutomatedAction extends AbstractAutomatedAction
     protected const string LIMIT_OPTION = 'limit';
     protected const string FIRST_ID_OPTION = 'first_id';
 
+    protected const string ALBUM_IDS = 'album_ids';
+    protected const string CURRENT_INDEX = 'current_index';
+
     public function getOptions(): array
     {
         $options = parent::getOptions();

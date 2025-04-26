@@ -11,8 +11,6 @@ use PlatformHelpers\PlatformHelperFactory;
 
 class BandcampDatabaseUpdater extends AbstractSequentialAutomatedAction
 {
-    private const string ALBUM_IDS = 'album_ids';
-
     public function setUp(DataValidator $validator): void
     {
         $dbService = $this->coreServiceProvider->getDatabaseService();
@@ -40,21 +38,21 @@ class BandcampDatabaseUpdater extends AbstractSequentialAutomatedAction
         $dbService->close($dbConn);
 
         $sessionData = [
-            'current_index' => 0,
-            'album_ids' => $ids
+            self::CURRENT_INDEX => 0,
+            self::ALBUM_IDS => $ids
         ];
-        $this->storeInSession(self::ALBUM_IDS, $sessionData);
+        $this->storeInSession(self::PROGRESS_DATA, $sessionData);
     }
 
     public function proceedWithNextStep(): AutomatedActionStepData
     {
-        $sessionData = $this->getFromSession(self::ALBUM_IDS);
+        $sessionData = $this->getFromSession(self::PROGRESS_DATA);
         if ($sessionData === null) {
             return new AutomatedActionStepData(AutomatedActionStatus::failed, HttpStatusCodes::internalServerError, 'Unable to retrieve session data', AutomatedActionLogType::error);
         }
 
-        $albumIds = $sessionData['album_ids'] ?? null;
-        $currentIndex = $sessionData['current_index'] ?? null;
+        $albumIds = $sessionData[self::ALBUM_IDS] ?? null;
+        $currentIndex = $sessionData[self::CURRENT_INDEX] ?? null;
         if (!is_array($albumIds) || !is_int($currentIndex)) {
             return new AutomatedActionStepData(AutomatedActionStatus::failed, HttpStatusCodes::internalServerError, 'Invalid session data structure', AutomatedActionLogType::error);
         }
@@ -113,8 +111,8 @@ class BandcampDatabaseUpdater extends AbstractSequentialAutomatedAction
 
             $dbConn->commit();
 
-            $sessionData['current_index'] = $currentIndex + 1;
-            $this->storeInSession(self::ALBUM_IDS, $sessionData);
+            $sessionData[self::CURRENT_INDEX] = $currentIndex + 1;
+            $this->storeInSession(self::PROGRESS_DATA, $sessionData);
 
             return $stepData;
         } catch (Exception $e) {
@@ -131,6 +129,6 @@ class BandcampDatabaseUpdater extends AbstractSequentialAutomatedAction
 
     public function shutDown(): void
     {
-        $this->removeFromSession(self::ALBUM_IDS);
+        $this->removeFromSession(self::PROGRESS_DATA);
     }
 }

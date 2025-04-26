@@ -4,6 +4,7 @@ use AutomatedActions\AbstractAutomatedAction;
 use AutomatedActions\AutomatedActionStatus;
 use AutomatedActions\BandcampDatabaseUpdater;
 use AutomatedActions\DebugAutomatedAction;
+use AutomatedActions\MultiArtistsUpdater;
 use AutomatedActions\SteamDatabaseUpdater;
 use AutomatedActions\SteamProductsUpdater;
 use chsxf\MFX\Attributes\RequiredRequestMethod;
@@ -28,6 +29,7 @@ class Automation extends BaseRouteProvider
         if (self::$actions === null) {
             $values = [
                 BandcampDatabaseUpdater::class,
+                MultiArtistsUpdater::class,
                 SteamDatabaseUpdater::class,
                 SteamProductsUpdater::class
             ];
@@ -124,7 +126,7 @@ class Automation extends BaseRouteProvider
             $sessService[self::CURRENT_AUTOMATED_ACTION_SHA1] = $automatedActionSha1;
             return RequestResult::buildRedirectRequestResult('/Automation/process');
         } catch (Exception $e) {
-            trigger_error($e->getMessage(), E_ERROR);
+            trigger_error($e->getMessage(), E_USER_ERROR);
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
         }
     }
@@ -170,7 +172,7 @@ class Automation extends BaseRouteProvider
             $encodedJSON = json_encode($stepData);
             return RequestResult::buildJSONRequestResult($encodedJSON, true);
         } catch (Exception $e) {
-            trigger_error($e->getMessage(), E_ERROR);
+            trigger_error($e->getMessage(), E_USER_ERROR);
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
         }
     }
