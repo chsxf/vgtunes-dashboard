@@ -494,7 +494,7 @@ final class Album extends BaseRouteProvider
 
                 $artistsIds = [];
                 foreach ($sessionAlbumData[self::ARTISTS_FIELD] as $artist) {
-                    $artistIds[] = Artist::getOrCreateArtistId($dbConn, $artist);
+                    $artistsIds[] = Artist::getOrCreateArtistId($dbConn, $artist);
                 }
 
                 $slug = null;
@@ -519,11 +519,13 @@ final class Album extends BaseRouteProvider
                 }
                 $albumId = $dbConn->lastInsertId();
 
-                foreach ($artistIds as $artistId) {
-                    $sql = "INSERT INTO `album_artists` VALUE (?, ?)";
-                    if ((!$dbConn->exec($sql, $albumId, $artistId))) {
+                $currentOrder = 1;
+                foreach ($artistsIds as $artistId) {
+                    $sql = "INSERT INTO `album_artists` VALUE (?, ?, ?)";
+                    if ((!$dbConn->exec($sql, $albumId, $artistId, $currentOrder))) {
                         throw new Exception('A database error has occured');
                     }
+                    $currentOrder++;
                 }
 
                 foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {

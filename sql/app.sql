@@ -138,3 +138,8 @@ ALTER TABLE `albums`
 
 ALTER TABLE `albums`
     ADD `feature_flags` SET('bandcamp','steam','multi_artists') NOT NULL DEFAULT 'bandcamp,steam' AFTER `title`;
+
+-- [VERSION: 15]
+
+ALTER TABLE `album_artists`
+    ADD `artist_order` TINYINT UNSIGNED NOT NULL DEFAULT '0' AFTER `artist_id`;

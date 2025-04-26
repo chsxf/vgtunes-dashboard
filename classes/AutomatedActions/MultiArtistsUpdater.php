@@ -121,7 +121,7 @@ final class MultiArtistsUpdater extends AbstractSequentialAutomatedAction
                 throw new Exception("  Unable to fetch album's platform ID");
             }
 
-            $sql = "SELECT `artist_id` FROM `album_artists` WHERE `album_id` = ?";
+            $sql = "SELECT `artist_id` FROM `album_artists` WHERE `album_id` = ? AND `artist_order` != 0";
             if (($existingArtists = $dbConn->getColumn($sql, $currentAlbumId)) === false) {
                 throw new Exception("  Unable to fetch album's existing artists");
             }
@@ -131,20 +131,31 @@ final class MultiArtistsUpdater extends AbstractSequentialAutomatedAction
                 throw new Exception("  Unable to retrieve album details from the selected platform");
             }
 
-            $hasNewArtist = false;
-            foreach ($albumDetails->artists as $potentialNewArtist) {
-                $potentialNewArtistId = Artist::getOrCreateArtistId($dbConn, $potentialNewArtist);
-                if (!in_array($potentialNewArtistId, $existingArtists)) {
-                    $stepData->addLogLine("  Adding artist '{$potentialNewArtist}'...", AutomatedActionLogType::warning);
-                    $hasNewArtist = true;
-                    $sql = "INSERT INTO `album_artists` VALUE (?, ?)";
-                    if ($dbConn->exec($sql, $currentAlbumId, $potentialNewArtistId) === false) {
-                        throw new Exception("  Unable to add artist to the current album");
-                    }
-                }
+            $newArtists = [];
+            foreach ($albumDetails->artists as $newArtist) {
+                $newArtists[] = Artist::getOrCreateArtistId($dbConn, $newArtist);
             }
+
+            $artistIntersection = array_intersect($existingArtists, $newArtists);
+            $hasNewArtist = count($artistIntersection) != count($newArtists);
             if (!$hasNewArtist) {
                 $stepData->addLogLine("  No artist added");
+            } else {
+                $sql = "DELETE FROM `album_artists` WHERE `album_id` = ?";
+                if ($dbConn->exec($sql, $currentAlbumId) === false) {
+                    throw new Exception("  Unable to remove previous artist entries");
+                } else {
+                    $currentOrder = 1;
+                    foreach ($newArtists as $newArtistId) {
+                        $sql = "INSERT INTO `album_artists` VALUE (?, ?, ?)";
+                        if ($dbConn->exec($sql, $currentAlbumId, $newArtistId, $currentOrder) === false) {
+                            throw new Exception("  Unable to add artist to the current album");
+                        }
+                        $currentOrder++;
+                    }
+
+                    $stepData->addLogLine(sprintf("  Updated album with %d artists", count($newArtists)), AutomatedActionLogType::warning);
+                }
             }
 
             $sql = "UPDATE `albums`

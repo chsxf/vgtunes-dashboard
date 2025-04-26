@@ -44,7 +44,7 @@ final class JsonGenerator extends BaseRouteProvider
             $albums[$instance['album_id']]['instances'][$instance['platform']] = $instance['platform_id'];
         }
 
-        $sql = "SELECT * FROM `album_artists`";
+        $sql = "SELECT * FROM `album_artists` ORDER BY `artist_order` ASC";
         $albumArtists = $dbConn->get($sql, \PDO::FETCH_ASSOC);
         foreach ($albumArtists as $albumArtist) {
             $albums[$albumArtist['album_id']]['artists'][] = $artists[$albumArtist['artist_id']]['slug'];
