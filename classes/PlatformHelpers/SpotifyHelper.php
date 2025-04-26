@@ -151,13 +151,18 @@ final class SpotifyHelper implements IPlatformHelper
     private function getAccessToken(): string
     {
         $dbConn = $this->databaseService->open();
-        $dbConn->beginTransaction();
+        $wasInTransaction = $dbConn->inTransaction();
+        if (!$wasInTransaction) {
+            $dbConn->beginTransaction();
+        }
 
         $user = $this->authService->getCurrentAuthenticatedUser();
 
         $sql = "SELECT `access_token` FROM `spotify_access_tokens` WHERE `user_id` = ? AND `expires_at` > CURRENT_TIMESTAMP()";
         if (($accessToken = $dbConn->getValue($sql, $user->getId())) !== false) {
-            $dbConn->rollBack();
+            if (!$wasInTransaction) {
+                $dbConn->rollBack();
+            }
             $this->databaseService->close($dbConn);
             return $accessToken;
         }
@@ -165,7 +170,9 @@ final class SpotifyHelper implements IPlatformHelper
         try {
             $newAccessToken = self::fetchAccessToken($this->configService->getValue('spotify.client_id'), $this->configService->getValue('spotify.client_secret'));
         } catch (PlatformHelperException $e) {
-            $dbConn->rollBack();
+            if (!$wasInTransaction) {
+                $dbConn->rollBack();
+            }
             $this->databaseService->close($dbConn);
             throw new PlatformHelperException("Issue generating new Spotify access token", previous: $e);
         }
@@ -173,12 +180,16 @@ final class SpotifyHelper implements IPlatformHelper
         $sql = "INSERT INTO `spotify_access_tokens` (`user_id`, `access_token`, `expires_at`) VALUE (?, ?, DATE_ADD(CURRENT_TIMESTAMP(), INTERVAL 1 HOUR))
                     ON DUPLICATE KEY UPDATE `access_token` = ?, `expires_at` = DATE_ADD(CURRENT_TIMESTAMP(), INTERVAL 1 HOUR)";
         if ($dbConn->exec($sql, $user->getId(), $newAccessToken, $newAccessToken) === false) {
-            $dbConn->rollBack();
+            if (!$wasInTransaction) {
+                $dbConn->rollBack();
+            }
             $this->databaseService->close($dbConn);
             throw new PlatformHelperException('Unable to update Spotify access token');
         }
 
-        $dbConn->commit();
+        if (!$wasInTransaction) {
+            $dbConn->commit();
+        }
         $this->databaseService->close($dbConn);
         return $newAccessToken;
     }
