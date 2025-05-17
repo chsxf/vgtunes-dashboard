@@ -26,7 +26,7 @@ final class Album extends BaseRouteProvider
     private const SESS_ALBUM_DATA = 'album-data';
 
     private const string FUNCTION = 'function';
-    private const string SAVED_DATA = 'saved_data';
+    private const string DATA_STATUS = 'data_status';
     private const string NEW_DATA = 'new_data';
     private const string ALBUM_ID = 'album_id';
 
@@ -77,7 +77,7 @@ final class Album extends BaseRouteProvider
                     self::TITLE_FIELD => $validator[self::TITLE_FIELD],
                     self::ARTISTS_FIELD => $decodedArtists,
                     self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                    self::SAVED_DATA => false
+                    self::DATA_STATUS => AlbumDataStatus::new
                 ];
 
                 if ($validator[self::PLATFORM_FIELD] == Platform::deezer->value) {
@@ -109,7 +109,7 @@ final class Album extends BaseRouteProvider
                             self::TITLE_FIELD => $title,
                             self::ARTISTS_FIELD => $artists,
                             self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                            self::SAVED_DATA => false
+                            self::DATA_STATUS => AlbumDataStatus::new
                         ]
                     ]
                 ];
@@ -126,6 +126,7 @@ final class Album extends BaseRouteProvider
                 if (!array_key_exists($platform->value, $sessionAlbumData[self::INSTANCES_FIELD])) {
                     $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
                     if (($exactMatch = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTISTS_FIELD])) !== null) {
+                        $exactMatch[self::DATA_STATUS] = AlbumDataStatus::new;
                         $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = $exactMatch;
                     }
                 }
@@ -176,7 +177,7 @@ final class Album extends BaseRouteProvider
                 self::TITLE_FIELD => $validator[self::TITLE_FIELD],
                 self::ARTISTS_FIELD => $decodedArtists,
                 self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                self::SAVED_DATA => false
+                self::DATA_STATUS => AlbumDataStatus::new
             ];
         } else {
             $sessionAlbumData = [
@@ -188,7 +189,7 @@ final class Album extends BaseRouteProvider
                         self::TITLE_FIELD => $validator[self::TITLE_FIELD],
                         self::ARTISTS_FIELD => $decodedArtists,
                         self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                        self::SAVED_DATA => false
+                        self::DATA_STATUS => AlbumDataStatus::new
                     ]
                 ]
             ];
@@ -198,6 +199,45 @@ final class Album extends BaseRouteProvider
 
         $redirectUrl = "/Album/show/{$albumId}";
         return RequestResult::buildRedirectRequestResult($redirectUrl);
+    }
+
+    #[Route, RequiredRequestMethod(RequestMethod::POST)]
+    public function removePlatform(): RequestResult
+    {
+        $dbService = $this->serviceProvider->getDatabaseService();
+        $dbConn = $dbService->open();
+
+        $validator = new DataValidator();
+        $validator->createField(self::ALBUM_ID, FieldType::POSITIVE_INTEGER, required: false)
+            ->addFilter(new ExistsInDB('albums', 'id', $dbConn));
+        $validator->createField(self::PLATFORM_FIELD, FieldType::TEXT)
+            ->addFilter(new In(array_keys(Platform::PLATFORMS)));
+
+        if (!$validator->validate($_POST)) {
+            return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+        }
+
+        $albumId = $validator->getFieldValue(self::ALBUM_ID, true);
+        $isNew = empty($albumId);
+
+        if ($isNew) {
+            $sessionService = $this->serviceProvider->getSessionService();
+            if (!isset($sessionService[self::SESS_ALBUM_DATA])) {
+                return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+            }
+
+            $sessionAlbumData = $sessionService[self::SESS_ALBUM_DATA];
+            unset($sessionAlbumData[self::INSTANCES_FIELD][$validator[self::PLATFORM_FIELD]]);
+            $sessionService[self::SESS_ALBUM_DATA] = $sessionAlbumData;
+
+            return RequestResult::buildRedirectRequestResult('/Album/show');
+        } else {
+            $sql = "DELETE FROM `album_instances` WHERE `album_id` = ? AND `platform` = ?";
+            if ($dbConn->exec($sql, $albumId, $validator[self::PLATFORM_FIELD]) === false) {
+                return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+            }
+            return RequestResult::buildRedirectRequestResult("/Album/show/{$albumId}");
+        }
     }
 
     private static function createEditSearchQueryParams(int $albumId): array
@@ -379,7 +419,7 @@ final class Album extends BaseRouteProvider
         $albumDetails = $albumRow;
         $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_500.webp", $configService->getValue('covers.base_url'), $albumRow['slug']);
         $albumDetails[self::ARTISTS_FIELD] = $artists;
-        $albumDetails[self::INSTANCES_FIELD] = array_map(fn($instance) => array_merge($instance, [self::SAVED_DATA => true]), $instances);
+        $albumDetails[self::INSTANCES_FIELD] = array_map(fn($instance) => array_merge($instance, [self::DATA_STATUS => AlbumDataStatus::saved]), $instances);
         $albumDetails[self::LAST_FEATURED_FIELD] = $lastFeatured;
         return $albumDetails;
     }
@@ -567,10 +607,21 @@ final class Album extends BaseRouteProvider
                 }
 
                 foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
-                    if (!empty($instanceData) && $instanceData[self::SAVED_DATA] === false) {
-                        $sql = 'INSERT INTO `album_instances` VALUE (?, ?, ?) ON DUPLICATE KEY UPDATE `platform_id` = ?';
-                        if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD], $instanceData[self::PLATFORM_ID_FIELD])) {
-                            throw new Exception('A database error has occured');
+                    if (!empty($instanceData)) {
+                        switch ($instanceData[self::DATA_STATUS]) {
+                            case AlbumDataStatus::new:
+                                $sql = 'INSERT INTO `album_instances` VALUE (?, ?, ?) ON DUPLICATE KEY UPDATE `platform_id` = ?';
+                                if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD], $instanceData[self::PLATFORM_ID_FIELD])) {
+                                    throw new Exception('A database error has occured');
+                                }
+                                break;
+
+                            case AlbumDataStatus::removed:
+                                $sql = 'DELETE FROM `album_instances` WHERE `album_id` = ? AND `platform` = ?';
+                                if (!$dbConn->exec($sql, $albumId, $platform)) {
+                                    throw new Exception('A database error has occured');
+                                }
+                                break;
                         }
                     }
                 }

@@ -46,8 +46,12 @@
 					<div class="col-6 text-secondary">
 						{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null %}
 							{% with { platform_details: album_details.instances[platform] } %}
-							{% if (is_new == false) and (platform_details.saved_data == false) %}
-								<span class="text-warning">(Preview)</span><br/>
+							{% if (is_new == false) %}
+								{% if platform_details.data_status == 'new' %}
+									<span class="text-warning">(Preview)</span><br/>
+								{% elseif platform_details.data_status == 'removed' %}
+									<span class="text-danger">(To Remove)</span><br/>
+								{% endif %}
 							{% endif %}
 							{{ platform_details.platform_id }}
 							{% if platform_details.title is defined %}
@@ -69,9 +73,18 @@
 
 					<div class="col-auto">
 						<div class="row">
-							{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null %}
+							{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null and (album_details.instances[platform].data_status != 'removed') %}
 								<div class="col-auto">
 									<a href="{{ album_details.instances[platform].url }}" class="btn btn-sm btn-outline-success" target="_blank">Look Up</a>
+								</div>
+								<div class="col-auto">
+									<form method="post" action="/Album/removePlatform" onsubmit="return confirm('are you sure your want to remove it?');">
+										<input type="hidden" name="platform" value="{{ platform }}"/>
+										{% if is_new == false %}
+											<input type="hidden" name="album_id" value="{{ album_details.id }}"/>
+										{% endif %}
+										<button class="btn btn-sm btn-outline-danger">Remove</button>
+									</form>
 								</div>
 							{% endif %}
 							<div class="col-auto">
