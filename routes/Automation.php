@@ -7,6 +7,7 @@ use AutomatedActions\DebugAutomatedAction;
 use AutomatedActions\MultiArtistsUpdater;
 use AutomatedActions\SteamDatabaseUpdater;
 use AutomatedActions\SteamProductsUpdater;
+use AutomatedActions\TidalDatabaseUpdater;
 use chsxf\MFX\Attributes\RequiredRequestMethod;
 use chsxf\MFX\Attributes\Route;
 use chsxf\MFX\DataValidator;
@@ -31,7 +32,8 @@ class Automation extends BaseRouteProvider
                 BandcampDatabaseUpdater::class,
                 MultiArtistsUpdater::class,
                 SteamDatabaseUpdater::class,
-                SteamProductsUpdater::class
+                SteamProductsUpdater::class,
+                TidalDatabaseUpdater::class
             ];
 
             if ($includeDebugActions) {

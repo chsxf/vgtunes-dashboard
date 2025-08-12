@@ -3,24 +3,19 @@
 namespace PlatformHelpers;
 
 use chsxf\MFX\HttpStatusCodes;
-use chsxf\MFX\Services\IAuthenticationService;
-use chsxf\MFX\Services\IConfigService;
-use chsxf\MFX\Services\IDatabaseService;
 use JsonException;
 use Platform;
 use PlatformAlbum;
 
-final class SpotifyHelper implements IPlatformHelper
+final class SpotifyHelper extends AbstractAuthPlatformHelper
 {
     use SearchExactMatchTrait;
 
     private const string API_SEARCH_URL = 'https://api.spotify.com/v1/search';
-    private const string API_ALBUM_URL = 'https://api.spotify.com/v1/albums/' . IPlatformHelper::PLATFORM_ID_PLACEHOLDER;
-    private const string ALBUM_LOOKUP_URL = "https://open.spotify.com/album/" . IPlatformHelper::PLATFORM_ID_PLACEHOLDER;
+    private const string API_ALBUM_URL = 'https://api.spotify.com/v1/albums/' . AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER;
+    private const string ALBUM_LOOKUP_URL = "https://open.spotify.com/album/" . AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER;
 
     private ?int $nextPageIndex = null;
-
-    public function __construct(private IConfigService $configService, private IDatabaseService $databaseService, private IAuthenticationService $authService) {}
 
     public function getPlatform(): Platform
     {
@@ -29,21 +24,18 @@ final class SpotifyHelper implements IPlatformHelper
 
     public function getLookUpURL(string $platformId): string
     {
-        return str_replace('{PLATFORM_ID}', $platformId, self::ALBUM_LOOKUP_URL);
+        return str_replace(AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER, $platformId, self::ALBUM_LOOKUP_URL);
     }
 
-    public function search(string $query, ?int $startAt = null): array
+    protected function queryAPI(string $url, array $queryParams): array
     {
         $accessToken = $this->getAccessToken();
 
-        $query = http_build_query([
-            'q' => $query,
-            'type' => 'album',
-            'market' => 'US',
-            'limit' => $this->resultsPerPage(),
-            'offset' => $startAt ?? 0
-        ]);
-        $url = sprintf("%s?%s", self::API_SEARCH_URL, $query);
+        if (!empty($queryParams)) {
+            $queryString = http_build_query($queryParams);
+            $url = sprintf("%s?%s", $url, $queryString);
+        }
+
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -65,6 +57,20 @@ final class SpotifyHelper implements IPlatformHelper
             throw new PlatformHelperException('An error has occured while parsing search results.', previous: $e);
         }
 
+        return $decodedJson;
+    }
+
+    public function search(string $query, ?int $startAt = null): array
+    {
+        $queryParams = [
+            'q' => $query,
+            'type' => 'album',
+            'market' => 'US',
+            'limit' => $this->resultsPerPage(),
+            'offset' => $startAt ?? 0
+        ];
+        $decodedJson = $this->queryAPI(self::API_SEARCH_URL, $queryParams);
+
         if (array_key_exists('next', $decodedJson['albums'])) {
             $queryParams = parse_url($decodedJson['albums']['next'], PHP_URL_QUERY);
             if (!empty($queryParams)) {
@@ -85,29 +91,8 @@ final class SpotifyHelper implements IPlatformHelper
 
     public function getAlbumDetails(string $albumId): PlatformAlbum|false|null
     {
-        $accessToken = $this->getAccessToken();
-
-        $url = str_replace(IPlatformHelper::PLATFORM_ID_PLACEHOLDER, $albumId, self::API_ALBUM_URL);
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => ["Authorization: Bearer {$accessToken}"]
-        ]);
-        $result = curl_exec($ch);
-        if ($result === false) {
-            $error = curl_error($ch);
-            curl_close($ch);
-            throw new PlatformHelperException($error);
-        } else if (($http_status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE)) != 200) {
-            throw new PlatformHelperException("Server responded with HTTP status code {$http_status}", HttpStatusCodes::tryFrom($http_status));
-        }
-        curl_close($ch);
-
-        try {
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
-        } catch (JsonException $e) {
-            throw new PlatformHelperException('An error has occured while parsing album details result.', previous: $e);
-        }
+        $url = str_replace(AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER, $albumId, self::API_ALBUM_URL);
+        $decodedJson = $this->queryAPI($url, []);
 
         $artists = [];
         foreach ($decodedJson['artists'] as $artist) {
@@ -116,12 +101,12 @@ final class SpotifyHelper implements IPlatformHelper
         return new PlatformAlbum($decodedJson['name'], $albumId, $artists, $decodedJson['images'][0]['url']);
     }
 
-    private static function fetchAccessToken(string $clientId, string $clientSecret): string
+    protected function fetchAccessToken(): AuthAccessTokenData
     {
         $postFields = http_build_query([
             'grant_type' => 'client_credentials',
-            'client_id' => $clientId,
-            'client_secret' => $clientSecret
+            'client_id' => $this->getClientId(),
+            'client_secret' => $this->getClientSecret()
         ]);
 
         $ch = curl_init('https://accounts.spotify.com/api/token');
@@ -145,53 +130,17 @@ final class SpotifyHelper implements IPlatformHelper
         } catch (JsonException $e) {
             throw new PlatformHelperException('Unable to parse token result', previous: $e);
         }
-        return $decodedJson['access_token'];
+        return new AuthAccessTokenData($decodedJson['access_token'], intval($decodedJson['expires_in']));
     }
 
-    private function getAccessToken(): string
+    protected function getClientId(): string
     {
-        $dbConn = $this->databaseService->open();
-        $wasInTransaction = $dbConn->inTransaction();
-        if (!$wasInTransaction) {
-            $dbConn->beginTransaction();
-        }
+        return $this->configService->getValue('spotify.client_id');
+    }
 
-        $user = $this->authService->getCurrentAuthenticatedUser();
-
-        $sql = "SELECT `access_token` FROM `spotify_access_tokens` WHERE `user_id` = ? AND `expires_at` > CURRENT_TIMESTAMP()";
-        if (($accessToken = $dbConn->getValue($sql, $user->getId())) !== false) {
-            if (!$wasInTransaction) {
-                $dbConn->rollBack();
-            }
-            $this->databaseService->close($dbConn);
-            return $accessToken;
-        }
-
-        try {
-            $newAccessToken = self::fetchAccessToken($this->configService->getValue('spotify.client_id'), $this->configService->getValue('spotify.client_secret'));
-        } catch (PlatformHelperException $e) {
-            if (!$wasInTransaction) {
-                $dbConn->rollBack();
-            }
-            $this->databaseService->close($dbConn);
-            throw new PlatformHelperException("Issue generating new Spotify access token", previous: $e);
-        }
-
-        $sql = "INSERT INTO `spotify_access_tokens` (`user_id`, `access_token`, `expires_at`) VALUE (?, ?, DATE_ADD(CURRENT_TIMESTAMP(), INTERVAL 1 HOUR))
-                    ON DUPLICATE KEY UPDATE `access_token` = ?, `expires_at` = DATE_ADD(CURRENT_TIMESTAMP(), INTERVAL 1 HOUR)";
-        if ($dbConn->exec($sql, $user->getId(), $newAccessToken, $newAccessToken) === false) {
-            if (!$wasInTransaction) {
-                $dbConn->rollBack();
-            }
-            $this->databaseService->close($dbConn);
-            throw new PlatformHelperException('Unable to update Spotify access token');
-        }
-
-        if (!$wasInTransaction) {
-            $dbConn->commit();
-        }
-        $this->databaseService->close($dbConn);
-        return $newAccessToken;
+    protected function getClientSecret(): string
+    {
+        return $this->configService->getValue('spotify.client_secret');
     }
 
     public function supportsPagination(): bool

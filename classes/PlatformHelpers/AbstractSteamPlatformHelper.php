@@ -5,8 +5,10 @@ namespace PlatformHelpers;
 use chsxf\MFX\Services\IDatabaseService;
 use PlatformAlbum;
 
-abstract class AbstractSteamPlatformHelper implements IPlatformHelper
+abstract class AbstractSteamPlatformHelper extends AbstractPlatformHelper
 {
+    use DistanceResultSorterTrait;
+
     private const string LOOKUP_URL = 'https://store.steampowered.com/app/{PLATFORM_ID}';
     private const string CAPSULE_URL = 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/{PLATFORM_ID}/header.jpg?t={NOW}';
 
@@ -24,11 +26,9 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
         return str_replace(['{PLATFORM_ID}', '{NOW}'], [$platformId, $time], self::CAPSULE_URL);
     }
 
-    private static function containsExactWords(string $fullText, array $words): bool
+    protected function queryAPI(string $url, array $queryParams): array
     {
-        $textWords = array_filter(preg_split('/\W/', strtolower($fullText)));
-        $intersection = array_intersect($textWords, $words);
-        return count($intersection) == count($words);
+        return [];
     }
 
     public function search(string $query, ?int $startAt = null): array
@@ -46,25 +46,17 @@ abstract class AbstractSteamPlatformHelper implements IPlatformHelper
 
         $results = [];
         $queryLength = strlen($query);
-        $queryWords = array_filter(preg_split('/\W/', strtolower($query)));
+        $queryWords = self::splitWords($query);
         foreach ($dbResults as $dbResult) {
             $id = $dbResult['app_id'];
             $imgUrl = $this->getCoverUrl($id, time());
 
-            if (self::containsExactWords($dbResult['name'], $queryWords)) {
-                $lengthDistance = strlen($dbResult['name']) - strlen($queryLength);
-            } else {
-                $lengthDistance = PHP_INT_MAX;
-            }
-            $results[] = [new PlatformAlbum($dbResult['name'], $id, ['n/a'], $imgUrl), $lengthDistance];
+            $results[] = [
+                new PlatformAlbum($dbResult['name'], $id, ['n/a'], $imgUrl),
+                self::computeDistance($dbResult['name'], $queryWords, $queryLength)
+            ];
         }
-        usort($results, function ($itemA, $itemB) {
-            $comp = $itemA[1] <=> $itemB[1];
-            if ($comp === 0) {
-                $comp = $itemA[0] <=> $itemB[0];
-            }
-            return $comp;
-        });
+        self::sortByDistance($results);
 
         return array_map(fn($item) => $item[0], $results);
     }

@@ -14,11 +14,11 @@ use Platform;
 use PlatformAlbum;
 
 // https://developer.apple.com/documentation/applemusicapi
-final class AppleMusicHelper implements IPlatformHelper
+final class AppleMusicHelper extends AbstractPlatformHelper
 {
     private const string API_SEARCH_URL = "https://api.music.apple.com/v1/catalog/us/search";
-    private const string API_ALBUM_URL = "https://api.music.apple.com/v1/catalog/us/albums/" . IPlatformHelper::PLATFORM_ID_PLACEHOLDER;
-    private const string ALBUM_LOOKUP_URL = "https://music.apple.com/album/" . IPlatformHelper::PLATFORM_ID_PLACEHOLDER;
+    private const string API_ALBUM_URL = "https://api.music.apple.com/v1/catalog/us/albums/" . AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER;
+    private const string ALBUM_LOOKUP_URL = "https://music.apple.com/album/" . AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER;
 
     private ?int $nextPageIndex = null;
 
@@ -31,21 +31,15 @@ final class AppleMusicHelper implements IPlatformHelper
 
     public function getLookUpURL(string $platformId): string
     {
-        return str_replace(IPlatformHelper::PLATFORM_ID_PLACEHOLDER, $platformId, self::ALBUM_LOOKUP_URL);
+        return str_replace(AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER, $platformId, self::ALBUM_LOOKUP_URL);
     }
 
-    public function search(string $query, ?int $startAt = null): array
+    protected function queryAPI(string $url, array $queryParams): array
     {
         $jsonWebToken = $this->createJsonWebToken();
 
-        $query = http_build_query([
-            'term' => $query,
-            'limit' => $this->resultsPerPage(),
-            'offset' => $startAt ?? 0,
-            'types' => 'albums'
-        ]);
-
-        $url = sprintf("%s?%s", self::API_SEARCH_URL, $query);
+        $queryString = http_build_query($queryParams);
+        $url = sprintf("%s?%s", $url, $queryString);
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -66,6 +60,19 @@ final class AppleMusicHelper implements IPlatformHelper
         } catch (JsonException $e) {
             throw new PlatformHelperException('An error has occured while parsing search results.', previous: $e);
         }
+
+        return $decodedJson;
+    }
+
+    public function search(string $query, ?int $startAt = null): array
+    {
+        $query = [
+            'term' => $query,
+            'limit' => $this->resultsPerPage(),
+            'offset' => $startAt ?? 0,
+            'types' => 'albums'
+        ];
+        $decodedJson = $this->queryAPI(self::API_SEARCH_URL, $query);
 
         $results = [];
         if (!empty($decodedJson['results']) && !empty($decodedJson['results']['albums'])) {
@@ -121,32 +128,8 @@ final class AppleMusicHelper implements IPlatformHelper
 
     public function getAlbumDetails(string $albumId): PlatformAlbum|false|null
     {
-        $jsonWebToken = $this->createJsonWebToken();
-
-        $query = http_build_query(['include' => 'artists']);
-
-        $url = str_replace(IPlatformHelper::PLATFORM_ID_PLACEHOLDER, $albumId, self::API_ALBUM_URL);
-        $url = sprintf("%s?%s", $url, $query);
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => ["Authorization: Bearer {$jsonWebToken}"]
-        ]);
-        $result = curl_exec($ch);
-        if ($result === false) {
-            $error = curl_error($ch);
-            curl_close($ch);
-            throw new PlatformHelperException($error);
-        } else if (($http_status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE)) != 200) {
-            throw new PlatformHelperException("Server responded with HTTP status code {$http_status}", HttpStatusCodes::tryFrom($http_status));
-        }
-        curl_close($ch);
-
-        try {
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
-        } catch (JsonException $e) {
-            throw new PlatformHelperException('An error has occured while parsing search results.', previous: $e);
-        }
+        $url = str_replace(AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER, $albumId, self::API_ALBUM_URL);
+        $decodedJson = $this->queryAPI($url, ['include' => 'artists']);
 
         $albumDataContainer = $decodedJson['data'][0];
 

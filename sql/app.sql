@@ -143,3 +143,24 @@ ALTER TABLE `albums`
 
 ALTER TABLE `album_artists`
     ADD `artist_order` TINYINT UNSIGNED NOT NULL DEFAULT '0' AFTER `artist_id`;
+
+-- [VERSION: 16]
+
+ALTER TABLE `spotify_access_tokens`
+    ADD `platform` ENUM('spotify','tidal') NOT NULL AFTER `user_id`,
+    DROP PRIMARY KEY,
+    ADD PRIMARY KEY (`user_id`, `platform`) USING BTREE,
+    DROP FOREIGN KEY `spotify_access_tokens_ibfk_1`,
+    ADD CONSTRAINT `access_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `mfx_users`(`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+RENAME TABLE `spotify_access_tokens` TO `access_tokens`;
+
+-- [VERSION: 17]
+
+ALTER TABLE `album_instances`
+    CHANGE `platform` `platform` ENUM('apple_music','deezer','spotify','bandcamp','steam_game','steam_soundtrack','tidal') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;
+
+-- [VERSION: 18]
+
+ALTER TABLE `access_tokens`
+    CHANGE `access_token` `access_token` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;

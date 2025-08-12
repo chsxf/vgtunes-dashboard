@@ -7,7 +7,7 @@ use Platform;
 
 final class PlatformHelperFactory
 {
-    public static function get(Platform $platform, ICoreServiceProvider $serviceProvider): ?IPlatformHelper
+    public static function get(Platform $platform, ICoreServiceProvider $serviceProvider): ?AbstractPlatformHelper
     {
         switch ($platform) {
             case Platform::appleMusic:
@@ -22,6 +22,8 @@ final class PlatformHelperFactory
                 return new SteamGamePlatformHelper($serviceProvider->getDatabaseService());
             case Platform::steamSoundtrack:
                 return new SteamSoundtrackPlatformHelper($serviceProvider->getDatabaseService());
+            case Platform::tidal:
+                return new TidalPlatformHelper($serviceProvider->getConfigService(), $serviceProvider->getDatabaseService(), $serviceProvider->getAuthenticationService());
             default:
                 throw new PlatformHelperException("Unsupported platform '{$platform->value}'");
         }

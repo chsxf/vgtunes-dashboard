@@ -6,13 +6,13 @@ use JsonException;
 use Platform;
 use PlatformAlbum;
 
-final class DeezerPlatformHelper implements IPlatformHelper
+final class DeezerPlatformHelper extends AbstractPlatformHelper
 {
     use SearchExactMatchTrait;
 
     private const string API_SEARCH_URL = "https://api.deezer.com/search/album";
-    private const string API_ALBUM_URL = "https://api.deezer.com/album/" . IPlatformHelper::PLATFORM_ID_PLACEHOLDER;
-    private const string ALBUM_LOOKUP_URL = "https://www.deezer.com/fr/album/" . IPlatformHelper::PLATFORM_ID_PLACEHOLDER;
+    private const string API_ALBUM_URL = "https://api.deezer.com/album/" . AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER;
+    private const string ALBUM_LOOKUP_URL = "https://www.deezer.com/fr/album/" . AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER;
 
     private ?int $nextPageIndex = null;
 
@@ -23,7 +23,24 @@ final class DeezerPlatformHelper implements IPlatformHelper
 
     public function getLookUpURL(string $platformId): string
     {
-        return str_replace(IPlatformHelper::PLATFORM_ID_PLACEHOLDER, $platformId, self::ALBUM_LOOKUP_URL);
+        return str_replace(AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER, $platformId, self::ALBUM_LOOKUP_URL);
+    }
+
+    protected function queryAPI(string $url, array $queryParams): array
+    {
+        if (!empty($queryParams)) {
+            $queryString = http_build_query($queryParams);
+            $url = sprintf("%s?%s", $url, $queryString);
+        }
+
+        $rawResults = file_get_contents($url);
+        try {
+            $decodedJson = json_decode($rawResults, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+        } catch (JsonException $e) {
+            throw new PlatformHelperException('An error has occured while parsing search results.', previous: $e);
+        }
+
+        return $decodedJson;
     }
 
     public function search(string $query, ?int $startAt = null): array
@@ -32,15 +49,12 @@ final class DeezerPlatformHelper implements IPlatformHelper
             throw new PlatformHelperException('Query string cannot be empty.');
         }
 
-        $buildQuery = ['q' => $query, 'limit' => $this->resultsPerPage(), 'index' => $startAt ?? 0];
-        $url = sprintf("%s?%s", self::API_SEARCH_URL, http_build_query($buildQuery));
-
-        $rawSearchResults = file_get_contents($url);
-        try {
-            $decodedSearchResults = json_decode($rawSearchResults, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
-        } catch (JsonException $e) {
-            throw new PlatformHelperException('An error has occured while parsing search results.', previous: $e);
-        }
+        $buildQuery = [
+            'q' => $query,
+            'limit' => $this->resultsPerPage(),
+            'index' => $startAt ?? 0
+        ];
+        $decodedSearchResults = $this->queryAPI(self::API_SEARCH_URL, $buildQuery);
 
         if (array_key_exists('next', $decodedSearchResults)) {
             $queryParams = parse_url($decodedSearchResults['next'], PHP_URL_QUERY);
@@ -61,14 +75,8 @@ final class DeezerPlatformHelper implements IPlatformHelper
 
     public function getAlbumDetails(string $albumId): ?PlatformAlbum
     {
-        $url = str_replace(IPlatformHelper::PLATFORM_ID_PLACEHOLDER, $albumId, self::API_ALBUM_URL);
-
-        $rawResult = file_get_contents($url);
-        try {
-            $decodedResult = json_decode($rawResult, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
-        } catch (JsonException $e) {
-            throw new PlatformHelperException('An error has occured while parsing album details', previous: $e);
-        }
+        $url = str_replace(AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER, $albumId, self::API_ALBUM_URL);
+        $decodedResult = $this->queryAPI($url, []);
 
         $artists = [];
         foreach ($decodedResult['contributors'] as $artist) {

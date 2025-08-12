@@ -4,10 +4,10 @@ namespace AutomatedActions;
 
 use Platform;
 
-class BandcampDatabaseUpdater extends AbstractPlatformDatabaseUpdater
+class TidalDatabaseUpdater extends AbstractPlatformDatabaseUpdater
 {
     protected function getPlatform(): Platform
     {
-        return Platform::bandcamp;
+        return Platform::tidal;
     }
 }

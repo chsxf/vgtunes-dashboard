@@ -7,7 +7,7 @@ use JsonException;
 use Platform;
 use PlatformAlbum;
 
-final class BandcampPlatformHelper implements IPlatformHelper
+final class BandcampPlatformHelper extends AbstractPlatformHelper
 {
     use SearchExactMatchTrait;
 
@@ -24,17 +24,11 @@ final class BandcampPlatformHelper implements IPlatformHelper
         return $chunks[1];
     }
 
-    public function search(string $query, ?int $startAt = null): array
+    protected function queryAPI(string $url, array $queryParams): array
     {
-        $payload = [
-            'search_text' => $query,
-            'fan_id' => null,
-            'full_page' => false,
-            'search_filter' => 'a'
-        ];
-        $payload = json_encode($payload);
+        $payload = json_encode($queryParams);
 
-        $ch = curl_init(self::SEARCH_URL);
+        $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
@@ -59,6 +53,19 @@ final class BandcampPlatformHelper implements IPlatformHelper
         } catch (JsonException $e) {
             throw new PlatformHelperException('An error has occuped while parsing search results.', previous: $e);
         }
+
+        return $decodedJson;
+    }
+
+    public function search(string $query, ?int $startAt = null): array
+    {
+        $payload = [
+            'search_text' => $query,
+            'fan_id' => null,
+            'full_page' => false,
+            'search_filter' => 'a'
+        ];
+        $decodedJson = $this->queryAPI(self::SEARCH_URL, $payload);
 
         $results = [];
         foreach ($decodedJson['auto']['results'] as $album) {
