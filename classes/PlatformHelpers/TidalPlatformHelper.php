@@ -81,6 +81,9 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
             'include' => 'albums'
         ];
         $decodedJson = $this->queryAPI($url, $queryParams);
+        if (empty($decodedJson['included'])) {
+            return [];
+        }
 
         $results = [];
         $queryLength = strlen($query);
