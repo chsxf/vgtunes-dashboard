@@ -12,6 +12,7 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
     use SearchExactMatchTrait, DistanceResultSorterTrait;
 
     private const string API_SEARCH_URL = 'https://openapi.tidal.com/v2/searchResults/{QUERY}';
+    private const string API_MULTIPLE_ALBUMS_URL = 'https://openapi.tidal.com/v2/albums';
     private const string API_ALBUM_URL = 'https://openapi.tidal.com/v2/albums/' . AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER;
     private const string ALBUM_LOOKUP_URL = "https://tidal.com/album/" . AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER;
 
@@ -74,13 +75,11 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
     {
         $encodedQquery = rawurlencode($query);
         $url = str_replace('{QUERY}', $encodedQquery, self::API_SEARCH_URL);
-
         $queryParams = [
             'countryCode' => 'US',
             'explicitFilter' => 'include,exclude',
             'include' => 'albums'
         ];
-
         $decodedJson = $this->queryAPI($url, $queryParams);
 
         $results = [];
@@ -90,11 +89,45 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
             if (in_array('STREAM', $album['attributes']['availability'])) {
                 $title = $album['attributes']['title'];
                 $distance = self::computeDistance($title, $queryWords, $queryLength);
-                $albumDetails = $this->getAlbumDetails($album['id']);
-                $results[] = [$albumDetails, $distance];
+                $albumDetails = [
+                    'title' => $title,
+                    'id' => $album['id']
+                ];
+                $results[$album['id']] = [$albumDetails, $distance];
             }
         }
 
+        $queryParams = [
+            'countryCode' => 'US',
+            'include' => ['coverArt', 'artists'],
+            'filter[id]' => array_keys($results)
+        ];
+        $decodedJson = $this->queryAPI(self::API_MULTIPLE_ALBUMS_URL, $queryParams);
+        $included = $decodedJson['included'];
+        foreach ($decodedJson['data'] as $album) {
+            $albumId = $album['id'];
+
+            $coverUrl = '';
+            $coverArtId = $album['relationships']['coverArt']['data'][0]['id'];
+            foreach ($included as $includedItem) {
+                if ($includedItem['type'] == 'artworks' && $includedItem['id'] == $coverArtId) {
+                    $coverUrl = $includedItem['attributes']['files'][0]['href'];
+                }
+            }
+
+            $artistIds = array_map(fn($item) => $item['id'], $album['relationships']['artists']['data']);
+            $artists = [];
+            foreach ($included as $includedItem) {
+                if ($includedItem['type'] == 'artists' && in_array($includedItem['id'], $artistIds)) {
+                    $artists[] = $includedItem['attributes']['name'];
+                }
+            }
+
+            $partialDetails = $results[$albumId][0];
+            $results[$albumId][0] = new PlatformAlbum($partialDetails['title'], $albumId, $artists, $coverUrl);
+        }
+
+        $results = array_values($results);
         self::sortByDistance($results);
 
         return array_map(fn($item) => $item[0], $results);
