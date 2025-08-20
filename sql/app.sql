@@ -164,3 +164,8 @@ ALTER TABLE `album_instances`
 
 ALTER TABLE `access_tokens`
     CHANGE `access_token` `access_token` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;
+
+-- [VERSION: 19]
+
+ALTER TABLE `steam_products`
+    CHANGE `name` `name` VARCHAR(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL; 

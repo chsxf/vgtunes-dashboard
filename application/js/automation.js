@@ -18,7 +18,7 @@ function onRequestEnds(e) {
 
     switch (parsedResponse.status) {
       case "ok":
-        setTimeout(() => proceedWithNextStep(), 500);
+        setTimeout(() => proceedWithNextStep(), automationCooldown);
         break;
       case "cp":
         pushLog("Process complete.", "l");
@@ -27,10 +27,9 @@ function onRequestEnds(e) {
         if (parsedResponse.httpStatusCode == 429) {
           pushLog("Too Many Requests. Waiting for 60s and continuing...", "w");
           startCountdown(60, () => proceedWithNextStep());
-        }
-        else {
+        } else {
           pushLog("Process failed.", "e");
-        } 
+        }
         break;
       default:
         pushLog(`Unknown status '${parsedResponse.status}'`, "w");
@@ -45,7 +44,7 @@ function onRequestEnds(e) {
   }
 }
 
-function pushLog(logMsg, logType, extraClass = '') {
+function pushLog(logMsg, logType, extraClass = "") {
   let textClass = undefined;
   switch (logType) {
     case "d":
@@ -77,37 +76,40 @@ function pushLog(logMsg, logType, extraClass = '') {
 function startCountdown(seconds, callback) {
   let remainingSeconds = seconds;
   updateCountdownLabel(remainingSeconds);
-  let intervalRef = setInterval(function() {
+  let intervalRef = setInterval(function () {
     remainingSeconds--;
     if (remainingSeconds <= 0) {
       clearInterval(intervalRef);
       clearCountdownLabel();
       proceedWithNextStep();
-    }
-    else {
+    } else {
       updateCountdownLabel(remainingSeconds);
     }
   }, 1000);
 }
 
 function updateCountdownLabel(remainingSeconds) {
-  const logContainer = document.getElementById('automation-log');
-  const logCountdownElements = logContainer.getElementsByClassName('log-countdown');
+  const logContainer = document.getElementById("automation-log");
+  const logCountdownElements =
+    logContainer.getElementsByClassName("log-countdown");
   const msg = `${remainingSeconds}`;
   if (logCountdownElements.length > 0) {
     logCountdownElements[0].innerHTML = msg;
-  }
-  else {
-    pushLog(msg, 'w', 'log-countdown');
+  } else {
+    pushLog(msg, "w", "log-countdown");
   }
 }
 
 function clearCountdownLabel() {
-  const logContainer = document.getElementById('automation-log');
-  const logCountdownElements = logContainer.getElementsByClassName('log-countdown');
+  const logContainer = document.getElementById("automation-log");
+  const logCountdownElements =
+    logContainer.getElementsByClassName("log-countdown");
   if (logCountdownElements.length > 0) {
     logCountdownElements[0].remove();
-    logContainer.innerHTML = logContainer.innerHTML.substring(0, logContainer.innerHTML.lastIndexOf("\n"));
+    logContainer.innerHTML = logContainer.innerHTML.substring(
+      0,
+      logContainer.innerHTML.lastIndexOf("\n")
+    );
   }
 }
 

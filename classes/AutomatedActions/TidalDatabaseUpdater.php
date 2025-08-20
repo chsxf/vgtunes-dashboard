@@ -10,4 +10,9 @@ class TidalDatabaseUpdater extends AbstractPlatformDatabaseUpdater
     {
         return Platform::tidal;
     }
+
+    public function getCooldown(): int
+    {
+        return 5_000;
+    }
 }

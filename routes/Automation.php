@@ -151,6 +151,7 @@ class Automation extends BaseRouteProvider
 
         $this->serviceProvider->getScriptService()->add('/js/automation.js', defer: true);
         return new RequestResult(data: [
+            'cooldown' => $automatedAction->getCooldown(),
             'action_class' => get_class($automatedAction)
         ]);
     }

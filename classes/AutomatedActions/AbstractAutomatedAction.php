@@ -43,6 +43,11 @@ abstract class AbstractAutomatedAction
         return [];
     }
 
+    public function getCooldown(): int
+    {
+        return 500;
+    }
+
     abstract public function setUp(DataValidator $validator): void;
     abstract public function proceedWithNextStep(): AutomatedActionStepData;
     abstract public function shutDown(): void;

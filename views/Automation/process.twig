@@ -1,5 +1,11 @@
 {% extends "root.twig" %}
 
+{% block head %}
+	<script type="text/javascript">
+		const automationCooldown = {{ cooldown }};
+	</script>
+{% endblock %}
+
 {% block page_title "Automation - Processing..." %}
 
 {% block page_content %}
