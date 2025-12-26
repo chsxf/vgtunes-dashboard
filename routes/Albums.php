@@ -12,24 +12,40 @@ use chsxf\MFX\Services\ICoreServiceProvider;
 
 final class Albums extends BaseRouteProvider implements IPaginationProvider
 {
+    private const string QUERY_PARAM = 'q';
+    private const string UNAVAILABLE_ONLY_PARAM = 'unavailable_only';
+
     private int $totalItemCountBuffer;
 
     private readonly ?string $filteredQuery;
+    private readonly bool $limitToAlbumsWithUnavailableEntries;
 
     public function __construct(protected readonly ICoreServiceProvider $serviceProvider)
     {
-        $query = trim($_REQUEST['q'] ?? '');
+        $query = trim($_REQUEST[self::QUERY_PARAM] ?? '');
         if (empty($query)) {
             $this->filteredQuery = null;
         } else {
             $this->filteredQuery = $query;
         }
 
+        $this->limitToAlbumsWithUnavailableEntries = !empty($_REQUEST[self::UNAVAILABLE_ONLY_PARAM]);
+
         $sql = "SELECT COUNT(`id`) FROM `albums`";
+        $queryClauses = [];
         $values = [];
+
+        if ($this->limitToAlbumsWithUnavailableEntries) {
+            $queryClauses[] = "`id` IN (SELECT DISTINCT `album_id` FROM `album_instances` WHERE `availability` = 'not_available')";
+        }
+
         if ($this->filteredQuery !== null) {
-            $sql .= " WHERE `title` LIKE ?";
+            $queryClauses[] = "`title` LIKE ?";
             $values[] = "%{$this->filteredQuery}%";
+        }
+
+        if (!empty($queryClauses)) {
+            $sql .= ' WHERE ' . implode(' AND ', $queryClauses);
         }
 
         $dbService = $this->serviceProvider->getDatabaseService();
@@ -55,13 +71,18 @@ final class Albums extends BaseRouteProvider implements IPaginationProvider
     #[Route, RequiredRequestMethod(RequestMethod::GET)]
     public function list(): RequestResult
     {
-        $pageManager = new PaginationManager($this, ['q']);
+        $pageManager = new PaginationManager($this, [self::QUERY_PARAM, self::UNAVAILABLE_ONLY_PARAM]);
 
         $dbService = $this->serviceProvider->getDatabaseService();
         $dbConn = $dbService->open();
 
+        $additionalWhereClauses = [];
+        if ($this->limitToAlbumsWithUnavailableEntries) {
+            $additionalWhereClauses[] = "`id` IN (SELECT DISTINCT `album_id` FROM `album_instances` WHERE `availability` = 'not_available')";
+        }
+
         try {
-            $albums = self::search($this->serviceProvider, $dbConn, $pageManager->getCurrentPageStart(), $pageManager->getItemCountPerPage(), $this->filteredQuery);
+            $albums = self::search($this->serviceProvider, $dbConn, $pageManager->getCurrentPageStart(), $pageManager->getItemCountPerPage(), $this->filteredQuery, $additionalWhereClauses);
         } catch (Exception $e) {
             trigger_error($e->getMessage(), E_ERROR);
             return RequestResult::buildRedirectRequestResult('/');
@@ -70,24 +91,33 @@ final class Albums extends BaseRouteProvider implements IPaginationProvider
         return new RequestResult(data: [
             'albums' => $albums,
             'pm' => $pageManager,
-            'frontend_base_url' => $this->serviceProvider->getConfigService()->getValue('frontend.base_url')
+            'frontend_base_url' => $this->serviceProvider->getConfigService()->getValue('frontend.base_url'),
+            'unavailable_only' => $this->limitToAlbumsWithUnavailableEntries,
+            'query' => $this->filteredQuery
         ]);
     }
 
-    public static function search(ICoreServiceProvider $coreServiceProvider, DatabaseConnectionInstance $dbConn, int $start, int $count, ?string $query = null, ?string $orderClause = null): array
+    public static function search(ICoreServiceProvider $coreServiceProvider, DatabaseConnectionInstance $dbConn, int $start, int $count, ?string $query = null, array $additionalWhereClauses = [], ?string $orderClause = null): array
     {
         $sql = "SELECT `id`, `slug`, `title`
                     FROM `albums`";
         $values = [];
+
         if ($query !== null) {
-            $sql .= " WHERE `title` LIKE ?";
+            $additionalWhereClauses[] = "`title` LIKE ?";
             $values[] = "%{$query}%";
         }
+
+        if (!empty($additionalWhereClauses)) {
+            $sql .= ' WHERE ' . implode(' AND ', $additionalWhereClauses);
+        }
+
         if ($orderClause !== null) {
             $sql .= " {$orderClause}";
         } else {
             $sql .= " ORDER BY `title` ASC";
         }
+
         $sql .= sprintf(" LIMIT %d, %d", $start, $count);
         if (($albums = $dbConn->get($sql, \PDO::FETCH_ASSOC, $values)) === false) {
             throw new Exception('An error has occured while loading albums.');

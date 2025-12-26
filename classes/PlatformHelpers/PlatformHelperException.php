@@ -13,6 +13,7 @@ class PlatformHelperException extends ErrorException
         public readonly ?HttpStatusCodes $statusCode = null,
         int $code = 0,
         int $severity = 1,
+        public readonly ?string $rawData = null,
         ?string $filename = null,
         ?int $line = null,
         ?Throwable $previous = null

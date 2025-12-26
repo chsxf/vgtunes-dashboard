@@ -4,6 +4,7 @@ namespace PlatformHelpers;
 
 use chsxf\MFX\Services\IDatabaseService;
 use PlatformAlbum;
+use PlatformAvailability;
 
 abstract class AbstractSteamPlatformHelper extends AbstractPlatformHelper
 {
@@ -82,9 +83,14 @@ abstract class AbstractSteamPlatformHelper extends AbstractPlatformHelper
         return null;
     }
 
-    public function getAlbumDetails(string $albumId): ?PlatformAlbum
+    public function getAlbumDetails(string $albumId): PlatformAlbum|false|null
     {
         return null;
+    }
+
+    public function canGetAlbumAvailability(): bool
+    {
+        return false;
     }
 
     public function supportsPagination(): bool

@@ -404,7 +404,7 @@ final class Album extends BaseRouteProvider
             throw new Exception('An error has occured while querying album details', E_USER_ERROR);
         }
 
-        $sql = "SELECT `platform`, `platform_id` FROM `album_instances` WHERE `album_id` = ?";
+        $sql = "SELECT `platform`, `platform_id`, `availability` FROM `album_instances` WHERE `album_id` = ?";
         if (($instances = $dbConn->getIndexed($sql, self::PLATFORM_FIELD, \PDO::FETCH_ASSOC, $albumId)) === false) {
             throw new Exception("An error has occured while querying album's instances", E_USER_ERROR);
         }
@@ -577,7 +577,7 @@ final class Album extends BaseRouteProvider
 
                 foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
                     if (!empty($instanceData)) {
-                        $sql = 'INSERT INTO `album_instances` VALUE (?, ?, ?)';
+                        $sql = 'INSERT INTO `album_instances` (`album_id`, `platform`, `platform_id`) VALUE (?, ?, ?)';
                         if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD])) {
                             throw new Exception('A database error has occured');
                         }
@@ -617,7 +617,7 @@ final class Album extends BaseRouteProvider
                     if (!empty($instanceData)) {
                         switch ($instanceData[self::DATA_STATUS]) {
                             case AlbumDataStatus::new:
-                                $sql = 'INSERT INTO `album_instances` VALUE (?, ?, ?) ON DUPLICATE KEY UPDATE `platform_id` = ?';
+                                $sql = 'INSERT INTO `album_instances` (`album_id`, `platform`, `platform_id`) VALUE (?, ?, ?) ON DUPLICATE KEY UPDATE `platform_id` = ?';
                                 if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD], $instanceData[self::PLATFORM_ID_FIELD])) {
                                     throw new Exception('A database error has occured');
                                 }

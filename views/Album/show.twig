@@ -54,6 +54,11 @@
 								{% endif %}
 							{% endif %}
 							{{ platform_details.platform_id }}
+							{% if (is_new == false) %}
+								{% if platform_details.availability == 'not_available' %}
+									<span class="text-danger">(Unavailable)</span>
+								{% endif %}
+							{% endif %}
 							{% if platform_details.title is defined %}
 								<div class="row">
 									<div class="col-2">

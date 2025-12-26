@@ -4,6 +4,7 @@ namespace PlatformHelpers;
 
 use Platform;
 use PlatformAlbum;
+use PlatformAvailability;
 
 abstract class AbstractPlatformHelper
 {
@@ -18,6 +19,16 @@ abstract class AbstractPlatformHelper
     public abstract function searchExactMatch(string $title, array $artists): ?array;
 
     public abstract function getAlbumDetails(string $albumId): PlatformAlbum|false|null;
+
+    public function canGetAlbumAvailability(): bool
+    {
+        return true;
+    }
+
+    public function getAlbumAvailability(string $albumId): PlatformAvailability|false
+    {
+        return PlatformAvailability::Unknown;
+    }
 
     public abstract function supportsPagination(): bool;
     public abstract function nextPageStart(): ?int;

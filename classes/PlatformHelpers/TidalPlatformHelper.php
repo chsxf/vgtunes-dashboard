@@ -6,6 +6,7 @@ use chsxf\MFX\HttpStatusCodes;
 use JsonException;
 use Platform;
 use PlatformAlbum;
+use PlatformAvailability;
 
 final class TidalPlatformHelper extends AbstractAuthPlatformHelper
 {
@@ -55,12 +56,10 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
         $result = curl_exec($ch);
         if ($result === false) {
             $error = curl_error($ch);
-            curl_close($ch);
             throw new PlatformHelperException($error);
         } else if (($http_status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE)) != 200) {
-            throw new PlatformHelperException("Server responded with HTTP status code {$http_status}", HttpStatusCodes::tryFrom($http_status));
+            throw new PlatformHelperException("Server responded with HTTP status code {$http_status}", HttpStatusCodes::tryFrom($http_status), rawData: $result);
         }
-        curl_close($ch);
 
         try {
             $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
@@ -162,6 +161,29 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
         }
 
         return new PlatformAlbum($title, $albumId, $artists, $coverUrl);
+    }
+
+    public function getAlbumAvailability(string $albumId): PlatformAvailability|false
+    {
+        try {
+            $url = str_replace(AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER, $albumId, self::API_ALBUM_URL);
+            $queryParams = ['countryCode' => 'US'];
+            $decodedJson = $this->queryAPI($url, $queryParams);
+        } catch (PlatformHelperException $e) {
+            if ($e->statusCode == HttpStatusCodes::notFound && json_validate($e->rawData)) {
+                $decodedJson = json_decode($e->rawData, true);
+                if (array_key_exists('errors', $decodedJson) && $decodedJson['errors'][0]['code'] == 'NOT_FOUND') {
+                    return PlatformAvailability::NotAvailable;
+                }
+            }
+
+            throw $e;
+        }
+
+        if (array_key_exists('data', $decodedJson)) {
+            return PlatformAvailability::Available;
+        }
+        return PlatformAvailability::Unknown;
     }
 
     protected function fetchAccessToken(): AuthAccessTokenData
