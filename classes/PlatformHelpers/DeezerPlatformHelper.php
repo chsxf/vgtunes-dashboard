@@ -5,6 +5,7 @@ namespace PlatformHelpers;
 use JsonException;
 use Platform;
 use PlatformAlbum;
+use PlatformAvailability;
 
 final class DeezerPlatformHelper extends AbstractPlatformHelper
 {
@@ -73,7 +74,7 @@ final class DeezerPlatformHelper extends AbstractPlatformHelper
         return $entries;
     }
 
-    public function getAlbumDetails(string $albumId): ?PlatformAlbum
+    public function getAlbumDetails(string $albumId): PlatformAlbum|false|null
     {
         $url = str_replace(AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER, $albumId, self::API_ALBUM_URL);
         $decodedResult = $this->queryAPI($url, []);
@@ -85,6 +86,24 @@ final class DeezerPlatformHelper extends AbstractPlatformHelper
             }
         }
         return new PlatformAlbum($decodedResult['title'], $albumId, $artists, $decodedResult['cover_xl']);
+    }
+
+    public function getAlbumAvailability(string $albumId): PlatformAvailability|false
+    {
+        $url = str_replace(AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER, $albumId, self::API_ALBUM_URL);
+        $decodedResult = $this->queryAPI($url, []);
+
+        if (array_key_exists('error', $decodedResult)) {
+            $errorData = $decodedResult['error'];
+            if (array_key_exists('code', $errorData)) {
+                $code = $errorData['code'];
+                if ($code == 800) {
+                    return PlatformAvailability::NotAvailable;
+                }
+            }
+        }
+
+        return PlatformAvailability::Available;
     }
 
     public function supportsPagination(): bool

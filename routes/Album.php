@@ -577,7 +577,7 @@ final class Album extends BaseRouteProvider
 
                 foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
                     if (!empty($instanceData)) {
-                        $sql = 'INSERT INTO `album_instances` VALUE (?, ?, ?)';
+                        $sql = 'INSERT INTO `album_instances` (`album_id`, `platform`, `platform_id`) VALUE (?, ?, ?)';
                         if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD])) {
                             throw new Exception('A database error has occured');
                         }
@@ -617,7 +617,7 @@ final class Album extends BaseRouteProvider
                     if (!empty($instanceData)) {
                         switch ($instanceData[self::DATA_STATUS]) {
                             case AlbumDataStatus::new:
-                                $sql = 'INSERT INTO `album_instances` VALUE (?, ?, ?) ON DUPLICATE KEY UPDATE `platform_id` = ?';
+                                $sql = 'INSERT INTO `album_instances` (`album_id`, `platform`, `platform_id`) VALUE (?, ?, ?) ON DUPLICATE KEY UPDATE `platform_id` = ?';
                                 if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD], $instanceData[self::PLATFORM_ID_FIELD])) {
                                     throw new Exception('A database error has occured');
                                 }

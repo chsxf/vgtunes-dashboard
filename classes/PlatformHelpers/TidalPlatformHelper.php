@@ -6,6 +6,7 @@ use chsxf\MFX\HttpStatusCodes;
 use JsonException;
 use Platform;
 use PlatformAlbum;
+use PlatformAvailability;
 
 final class TidalPlatformHelper extends AbstractAuthPlatformHelper
 {
@@ -162,6 +163,11 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
         }
 
         return new PlatformAlbum($title, $albumId, $artists, $coverUrl);
+    }
+
+    public function canGetAlbumAvailability(): bool
+    {
+        return false;
     }
 
     protected function fetchAccessToken(): AuthAccessTokenData

@@ -169,3 +169,9 @@ ALTER TABLE `access_tokens`
 
 ALTER TABLE `steam_products`
     CHANGE `name` `name` VARCHAR(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL; 
+
+-- [VERSION: 20]
+
+ALTER TABLE `album_instances`
+    ADD `availability` ENUM('unknown','available','not_available') NOT NULL DEFAULT 'unknown' AFTER `platform_id`,
+    ADD `last_availability_check` TIMESTAMP NOT NULL DEFAULT '2025-01-01 12:00:00' AFTER `availability`;

@@ -112,7 +112,7 @@ class SteamDatabaseUpdater extends AbstractSequentialAutomatedAction
             } else {
                 $stepData->addLogLine("  Match found: {$exactMatch['title']}");
 
-                $sql = "INSERT INTO `album_instances` VALUE (?, ?, ?)";
+                $sql = "INSERT INTO `album_instances` (`album_id`, `platform`, `platform_id`) VALUE (?, ?, ?)";
                 if ($dbConn->exec($sql, $currentAlbumId, $platform->value, $exactMatch['platform_id']) === false) {
                     throw new Exception('  Unable to save match');
                 }

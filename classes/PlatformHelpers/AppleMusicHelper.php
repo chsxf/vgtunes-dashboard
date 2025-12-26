@@ -12,6 +12,7 @@ use Jose\Component\Signature\Serializer\CompactSerializer;
 use JsonException;
 use Platform;
 use PlatformAlbum;
+use PlatformAvailability;
 
 // https://developer.apple.com/documentation/applemusicapi
 final class AppleMusicHelper extends AbstractPlatformHelper
@@ -144,6 +145,11 @@ final class AppleMusicHelper extends AbstractPlatformHelper
 
         $coverUrl = str_replace(['{w}', '{h}'], 1000, $albumDataContainer['attributes']['artwork']['url']);
         return new PlatformAlbum($albumDataContainer['attributes']['name'], $albumId, $artists, $coverUrl);
+    }
+
+    public function canGetAlbumAvailability(): bool
+    {
+        return false;
     }
 
     public function supportsPagination(): bool

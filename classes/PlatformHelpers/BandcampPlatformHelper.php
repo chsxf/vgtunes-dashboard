@@ -6,6 +6,7 @@ use chsxf\MFX\HttpStatusCodes;
 use JsonException;
 use Platform;
 use PlatformAlbum;
+use PlatformAvailability;
 
 final class BandcampPlatformHelper extends AbstractPlatformHelper
 {
@@ -86,6 +87,11 @@ final class BandcampPlatformHelper extends AbstractPlatformHelper
     public function getAlbumDetails(string $albumId): PlatformAlbum|false|null
     {
         return null;
+    }
+
+    public function canGetAlbumAvailability(): bool
+    {
+        return false;
     }
 
     public function supportsPagination(): bool
