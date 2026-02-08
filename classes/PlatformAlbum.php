@@ -15,6 +15,7 @@ final class PlatformAlbum implements IteratorAggregate
     ];
 
     public bool $existsInDatabase;
+    public int $potentialDuplicate;
 
     public function __construct(
         public readonly string $title,
@@ -23,6 +24,12 @@ final class PlatformAlbum implements IteratorAggregate
         public readonly ?string $cover_url
     ) {
         $this->existsInDatabase = false;
+        $this->potentialDuplicate = 0;
+    }
+
+    public function hasPotentialDuplicate(): bool
+    {
+        return $this->potentialDuplicate !== 0;
     }
 
     public function getIterator(): Traversable

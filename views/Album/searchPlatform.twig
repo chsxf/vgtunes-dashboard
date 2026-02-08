@@ -62,7 +62,13 @@
 				</thead>
 				<tbody>
 					{% for result in search_results %}
-						<tr {%- if result.existsInDatabase %} class="table-success" {%- endif %}>
+						{% set additional_class = '' %}
+						{% if result.existsInDatabase %}
+							{% set additional_class = 'table-success' %}
+						{% elseif result.hasPotentialDuplicate %}
+							{% set additional_class = 'table-danger' %}
+						{% endif %}
+						<tr class="{{ additional_class }}">
 							<td class="align-middle">
 								{% if result.cover_url is not empty %}
 									<img src="{{ result.cover_url }}" width="64">
@@ -76,6 +82,9 @@
 									{% if result.existsInDatabase %}
 										-
 										<span class="text-success">Already in database</span>
+									{% elseif result.hasPotentialDuplicate %}
+										-
+										<a href="/Album/show/{{ result.potentialDuplicate }}" target="_blank" class="link-danger">Duplicate album</a>
 									{% endif %}
 								</small>
 							</td>

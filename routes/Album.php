@@ -303,18 +303,25 @@ final class Album extends BaseRouteProvider
                             $values[] = $result->platform_id;
                         }
 
-                        $sql = "SELECT `platform_id`, COUNT(DISTINCT `album_id`)
-                                    FROM `album_instances`
-                                    WHERE `platform` = ? AND `platform_id` IN ({$queryMarks})
-                                    GROUP BY `platform_id`";
-                        $countByPlatformId = $dbConn->getPairs($sql, $values);
-                        if ($countByPlatformId === false) {
+                        $sql = "SELECT `platform_id` FROM `album_instances` WHERE `platform` = ? AND `platform_id` IN ({$queryMarks})";
+                        $existingPlatformId = $dbConn->getColumn($sql, $values);
+                        if ($existingPlatformId === false) {
                             throw new ErrorException('An error has occured while querying the database');
                         }
 
                         foreach ($searchResults as $result) {
-                            if (!empty($countByPlatformId[$result->platform_id])) {
+                            if (in_array($result->platform_id, $existingPlatformId)) {
                                 $result->existsInDatabase = true;
+                            }
+
+                            if (!$result->existsInDatabase) {
+                                $sql = "SELECT `id` FROM `albums` WHERE `title` = ? LIMIT 1";
+                                if (($duplicateAlbumResult = $dbConn->get($sql, \PDO::FETCH_ASSOC, $result->title)) === false) {
+                                    throw new ErrorException('An error has occured while querying the database');
+                                }
+                                if (!empty($duplicateAlbumResult)) {
+                                    $result->potentialDuplicate = $duplicateAlbumResult[0]['id'];
+                                }
                             }
                         }
 
