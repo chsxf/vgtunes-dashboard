@@ -3,6 +3,7 @@
 use AutomatedActions\AbstractAutomatedAction;
 use AutomatedActions\AutomatedActionStatus;
 use AutomatedActions\BandcampDatabaseUpdater;
+use AutomatedActions\CheckAlbumAvailabilityAutomatedAction;
 use AutomatedActions\DebugAutomatedAction;
 use AutomatedActions\MultiArtistsUpdater;
 use AutomatedActions\SteamDatabaseUpdater;
@@ -33,7 +34,8 @@ class Automation extends BaseRouteProvider
                 MultiArtistsUpdater::class,
                 SteamDatabaseUpdater::class,
                 SteamProductsUpdater::class,
-                TidalDatabaseUpdater::class
+                TidalDatabaseUpdater::class,
+                CheckAlbumAvailabilityAutomatedAction::class
             ];
 
             if ($includeDebugActions) {
