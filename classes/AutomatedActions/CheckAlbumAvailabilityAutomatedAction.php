@@ -89,6 +89,9 @@ class CheckAlbumAvailabilityAutomatedAction extends AbstractSequentialAutomatedA
             $platformLabel = $platformHelper->getPlatform()->getLabel();
 
             $stepData->addLogLine("Looking for album information on {$platformLabel} (platform ID: {$currentPlatformId})");
+
+            $availability = $platformHelper->getAlbumAvailability($currentPlatformId);
+
             $stepData->addLogLine("  Coming soon...");
 
             $sessionData[self::CURRENT_INDEX] = $currentIndex + 1;
