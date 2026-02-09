@@ -32,7 +32,7 @@ class CheckAlbumAvailabilityAutomatedAction extends AbstractSequentialAutomatedA
 
         $platformMarks = implode(',', array_pad([], count($platformsWithAvailabilityCheck), '?'));
 
-        $sql = "SELECT `platform`, `platform_id` 
+        $sql = "SELECT `album_id`, `platform`, `platform_id` 
                     FROM `album_instances`
                     WHERE `platform` IN ({$platformMarks})
                         AND (`availability` = ? OR `last_availability_check` < DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))";
@@ -83,6 +83,9 @@ class CheckAlbumAvailabilityAutomatedAction extends AbstractSequentialAutomatedA
         $currentPlatformInstance = $platformInstances[$currentIndex];
         $currentPlatformId = $currentPlatformInstance['platform_id'];
 
+        $dbService = $this->coreServiceProvider->getDatabaseService();
+        $dbConn = $dbService->open();
+
         try {
             $platform = Platform::from($currentPlatformInstance['platform']);
             $platformHelper = PlatformHelperFactory::get($platform, $this->coreServiceProvider);
@@ -92,7 +95,17 @@ class CheckAlbumAvailabilityAutomatedAction extends AbstractSequentialAutomatedA
 
             $availability = $platformHelper->getAlbumAvailability($currentPlatformId);
 
-            $stepData->addLogLine("  Coming soon...");
+            $sql = "UPDATE `album_instances`
+                        SET `availability` = ?,
+                            `last_availability_check` = CURRENT_TIMESTAMP()
+                        WHERE `album_id` = ? AND `platform` = ?";
+            $values = [$availability->value, $currentPlatformInstance['album_id'], $platform->value];
+            if (!$dbConn->exec($sql, $values)) {
+                throw new Exception('  Unable to update platform availability');
+            }
+
+            $logType = $availability == PlatformAvailability::NotAvailable ? AutomatedActionLogType::warning : AutomatedActionLogType::log;
+            $stepData->addLogLine("  Status: {$availability->value}", $logType);
 
             $sessionData[self::CURRENT_INDEX] = $currentIndex + 1;
             $this->storeInSession(self::PROGRESS_DATA, $sessionData);
@@ -103,6 +116,8 @@ class CheckAlbumAvailabilityAutomatedAction extends AbstractSequentialAutomatedA
             }
             $stepData->addLogLine($e->getMessage(), AutomatedActionLogType::error);
         }
+
+        $dbService->close($dbConn);
 
         return $stepData;
     }
