@@ -39,7 +39,6 @@ final class Album extends BaseRouteProvider
     private const string COVER_URL_FIELD = 'cover_url';
     private const string INSTANCES_FIELD = 'instances';
     private const string PLATFORM_ID_FIELD = 'platform_id';
-    private const string LAST_FEATURED_FIELD = 'last_featured';
     private const string BACK_URL_FIELD = 'back_url';
     private const string START_AT_FIELD = 'start_at';
 
@@ -418,16 +417,10 @@ final class Album extends BaseRouteProvider
             throw new Exception("An error has occured while querying album's artists", E_USER_ERROR);
         }
 
-        $sql = "SELECT MAX(`featured_at`) FROM `featured_albums` WHERE `album_id` = ?";
-        if (($lastFeatured = $dbConn->getValue($sql, $albumId)) === false) {
-            throw new Exception("An error has occured while querying album's last feature timestamp", E_USER_ERROR);
-        }
-
         $albumDetails = $albumRow;
         $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_500.webp", $configService->getValue('covers.base_url'), $albumRow['slug']);
         $albumDetails[self::ARTISTS_FIELD] = $artists;
         $albumDetails[self::INSTANCES_FIELD] = array_map(fn($instance) => array_merge($instance, [self::DATA_STATUS => AlbumDataStatus::saved]), $instances);
-        $albumDetails[self::LAST_FEATURED_FIELD] = $lastFeatured;
         return $albumDetails;
     }
 

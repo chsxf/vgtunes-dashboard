@@ -55,21 +55,13 @@ final class JsonGenerator extends BaseRouteProvider
             $remappedArtists[$artist['slug']] = $artist['name'];
         }
 
-        $sql = "SELECT `al`.`slug`, `fa`.`featured_at`
-                    FROM `featured_albums` AS `fa`
-                    LEFT JOIN `albums` AS `al`
-                        ON `al`.`id` = `fa`.`album_id`
-                    ORDER BY `featured_at` DESC";
-        $featuredAlbums = $dbConn->get($sql, \PDO::FETCH_ASSOC);
-
         if (empty($_GET['raw'])) {
             $this->serviceProvider->getRequestService()->setAttachmentHeaders('dashboard-export.json', 'application/json');
         }
 
         $result = [
             'albums' => array_values($albums),
-            'artists' => $remappedArtists,
-            'featured_albums' => $featuredAlbums
+            'artists' => $remappedArtists
         ];
         return RequestResult::buildJSONRequestResult(json_encode($result), true);
     }

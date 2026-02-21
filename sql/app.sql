@@ -175,3 +175,7 @@ ALTER TABLE `steam_products`
 ALTER TABLE `album_instances`
     ADD `availability` ENUM('unknown','available','not_available') NOT NULL DEFAULT 'unknown' AFTER `platform_id`,
     ADD `last_availability_check` TIMESTAMP NOT NULL DEFAULT '2025-01-01 12:00:00' AFTER `availability`;
+
+-- [VERSION: 21]
+
+DROP TABLE `featured_albums`;
