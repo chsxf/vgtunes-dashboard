@@ -41,6 +41,7 @@ final class Album extends BaseRouteProvider
     private const string PLATFORM_ID_FIELD = 'platform_id';
     private const string BACK_URL_FIELD = 'back_url';
     private const string START_AT_FIELD = 'start_at';
+    private const string AVAILABILITY_FIELD = 'availability';
 
     private const string PREVIOUS_SEARCHES = 'previous_searches';
 
@@ -76,7 +77,8 @@ final class Album extends BaseRouteProvider
                     self::TITLE_FIELD => $validator[self::TITLE_FIELD],
                     self::ARTISTS_FIELD => $decodedArtists,
                     self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                    self::DATA_STATUS => AlbumDataStatus::new
+                    self::DATA_STATUS => AlbumDataStatus::new,
+                    self::AVAILABILITY_FIELD => PlatformAvailability::Available
                 ];
 
                 if ($validator[self::PLATFORM_FIELD] == Platform::deezer->value) {
@@ -108,7 +110,8 @@ final class Album extends BaseRouteProvider
                             self::TITLE_FIELD => $title,
                             self::ARTISTS_FIELD => $artists,
                             self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                            self::DATA_STATUS => AlbumDataStatus::new
+                            self::DATA_STATUS => AlbumDataStatus::new,
+                            self::AVAILABILITY_FIELD => PlatformAvailability::Available
                         ]
                     ]
                 ];
@@ -176,7 +179,8 @@ final class Album extends BaseRouteProvider
                 self::TITLE_FIELD => $validator[self::TITLE_FIELD],
                 self::ARTISTS_FIELD => $decodedArtists,
                 self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                self::DATA_STATUS => AlbumDataStatus::new
+                self::DATA_STATUS => AlbumDataStatus::new,
+                self::AVAILABILITY_FIELD => PlatformAvailability::Available
             ];
         } else {
             $sessionAlbumData = [
@@ -188,7 +192,8 @@ final class Album extends BaseRouteProvider
                         self::TITLE_FIELD => $validator[self::TITLE_FIELD],
                         self::ARTISTS_FIELD => $decodedArtists,
                         self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                        self::DATA_STATUS => AlbumDataStatus::new
+                        self::DATA_STATUS => AlbumDataStatus::new,
+                        self::AVAILABILITY_FIELD => PlatformAvailability::Available
                     ]
                 ]
             ];
@@ -570,7 +575,8 @@ final class Album extends BaseRouteProvider
 
                 foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
                     if (!empty($instanceData)) {
-                        $sql = 'INSERT INTO `album_instances` (`album_id`, `platform`, `platform_id`) VALUE (?, ?, ?)';
+                        $sql = "INSERT INTO `album_instances` (`album_id`, `platform`, `platform_id`, `availability`, `last_availability_check`) 
+                                    VALUE (?, ?, ?, 'available', CURRENT_TIMESTAMP())";
                         if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD])) {
                             throw new Exception('A database error has occured');
                         }
@@ -610,7 +616,9 @@ final class Album extends BaseRouteProvider
                     if (!empty($instanceData)) {
                         switch ($instanceData[self::DATA_STATUS]) {
                             case AlbumDataStatus::new:
-                                $sql = 'INSERT INTO `album_instances` (`album_id`, `platform`, `platform_id`) VALUE (?, ?, ?) ON DUPLICATE KEY UPDATE `platform_id` = ?';
+                                $sql = "INSERT INTO `album_instances` (`album_id`, `platform`, `platform_id`, `availability`, `last_availability_check`)
+                                            VALUE (?, ?, ?, 'available', CURRENT_TIMESTAMP()) 
+                                            ON DUPLICATE KEY UPDATE `platform_id` = ?, `availability` = 'available', `last_availability_check` = CURRENT_TIMESTAMP()";
                                 if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD], $instanceData[self::PLATFORM_ID_FIELD])) {
                                     throw new Exception('A database error has occured');
                                 }
