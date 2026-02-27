@@ -161,6 +161,6 @@ final class SpotifyHelper extends AbstractAuthPlatformHelper
 
     public function resultsPerPage(): int
     {
-        return 50;
+        return 10;
     }
 }
