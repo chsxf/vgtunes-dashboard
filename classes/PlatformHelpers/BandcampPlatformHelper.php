@@ -103,7 +103,7 @@ final class BandcampPlatformHelper extends AbstractPlatformHelper
         switch ($httpStatusCode) {
             case HttpStatusCodes::notFound->value:
                 return PlatformAvailability::NotAvailable;
-            case HttpStatusCodes::ok:
+            case HttpStatusCodes::ok->value:
                 return PlatformAvailability::Available;
             default:
                 throw new PlatformHelperException("Server responded with HTTP status code {$httpStatusCode}", HttpStatusCodes::from($httpStatusCode));
