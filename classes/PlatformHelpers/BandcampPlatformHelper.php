@@ -101,6 +101,7 @@ final class BandcampPlatformHelper extends AbstractPlatformHelper
 
         $httpStatusCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         switch ($httpStatusCode) {
+            case HttpStatusCodes::movedPermanently->value:
             case HttpStatusCodes::notFound->value:
                 return PlatformAvailability::NotAvailable;
             case HttpStatusCodes::ok->value:
