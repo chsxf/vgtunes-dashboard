@@ -88,11 +88,13 @@ class CheckAlbumAvailabilityAutomatedAction extends AbstractSequentialAutomatedA
         $dbConn = $dbService->open();
 
         try {
+            $albumName = $dbConn->getValue("SELECT `title` FROM `albums` WHERE `id` = ?", $currentPlatformInstance['album_id']);
+
             $platform = Platform::from($currentPlatformInstance['platform']);
             $platformHelper = PlatformHelperFactory::get($platform, $this->coreServiceProvider);
             $platformLabel = $platformHelper->getPlatform()->getLabel();
 
-            $stepData->addLogLine("Looking for album information on {$platformLabel} (platform ID: {$currentPlatformId})");
+            $stepData->addLogLine("Looking for album information on {$platformLabel} (platform ID: {$currentPlatformId} - \"{$albumName}\")");
 
             $availability = $platformHelper->getAlbumAvailability($currentPlatformId);
 

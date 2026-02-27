@@ -41,13 +41,11 @@ final class BandcampPlatformHelper extends AbstractPlatformHelper
         $result = curl_exec($ch);
         if ($result === false) {
             $error = curl_error($ch);
-            curl_close($ch);
             throw new PlatformHelperException($error);
         } else if (($http_status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE)) !== 200) {
             $httpStatusCode = HttpStatusCodes::tryFrom($http_status);
             throw new PlatformHelperException("Server responded with HTTP status code {$http_status}", $httpStatusCode);
         }
-        curl_close($ch);
 
         try {
             $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
@@ -89,9 +87,29 @@ final class BandcampPlatformHelper extends AbstractPlatformHelper
         return null;
     }
 
-    public function canGetAlbumAvailability(): bool
+    public function getAlbumAvailability(string $albumId): PlatformAvailability|false
     {
-        return false;
+        $url = $this->getLookUpURL($albumId);
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $result = curl_exec($ch);
+        if ($result === false) {
+            $error = curl_error($ch);
+            throw new PlatformHelperException($error);
+        }
+
+        $httpStatusCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        switch ($httpStatusCode) {
+            case HttpStatusCodes::notFound->value:
+                return PlatformAvailability::NotAvailable;
+            case HttpStatusCodes::ok:
+                return PlatformAvailability::Available;
+            default:
+                throw new PlatformHelperException("Server responded with HTTP status code {$httpStatusCode}", HttpStatusCodes::from($httpStatusCode));
+        }
+
+        return PlatformAvailability::Unknown;
     }
 
     public function supportsPagination(): bool
