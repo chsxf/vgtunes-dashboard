@@ -130,6 +130,8 @@ final class Album extends BaseRouteProvider
                     if (($exactMatch = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTISTS_FIELD])) !== null) {
                         $exactMatch[self::DATA_STATUS] = AlbumDataStatus::new;
                         $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = $exactMatch;
+                    } else {
+                        $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = [self::DATA_STATUS => AlbumDataStatus::unknown];
                     }
                 }
             }

@@ -37,12 +37,12 @@
 					</div>
 
 					<div class="col-6 text-secondary">
-						{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null %}
+						{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null and album_details.instances[platform].data_status.value != 'unknown' %}
 							{% with { platform_details: album_details.instances[platform] } %}
 							{% if (is_new == false) %}
-								{% if platform_details.data_status == 'new' %}
+								{% if platform_details.data_status.value == 'new' %}
 									<span class="text-warning">(Preview)</span><br/>
-								{% elseif platform_details.data_status == 'removed' %}
+								{% elseif platform_details.data_status.value == 'removed' %}
 									<span class="text-danger">(To Remove)</span><br/>
 								{% endif %}
 							{% endif %}
@@ -71,7 +71,7 @@
 
 					<div class="col-auto">
 						<div class="row">
-							{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null and (album_details.instances[platform].data_status != 'removed') %}
+							{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null and (album_details.instances[platform].data_status.value not in ['removed', 'unknown']) %}
 								<div class="col-auto">
 									<a href="{{ album_details.instances[platform].url }}" class="btn btn-sm btn-outline-success" target="_blank">Look Up</a>
 								</div>
