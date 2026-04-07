@@ -530,7 +530,7 @@ final class Album extends BaseRouteProvider
             if ($sessionAlbumData[self::FUNCTION] == 'add') {
                 $hasAtLeastOnePlatformId = false;
                 foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
-                    if (!empty($instanceData)) {
+                    if (!empty($instanceData) && $instanceData[self::DATA_STATUS] != AlbumDataStatus::unknown) {
                         $hasAtLeastOnePlatformId = true;
                         break;
                     }
@@ -576,7 +576,7 @@ final class Album extends BaseRouteProvider
                 }
 
                 foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
-                    if (!empty($instanceData)) {
+                    if (!empty($instanceData) && $instanceData[self::DATA_STATUS] != AlbumDataStatus::unknown) {
                         $sql = "INSERT INTO `album_instances` (`album_id`, `platform`, `platform_id`, `availability`, `last_availability_check`) 
                                     VALUE (?, ?, ?, 'available', CURRENT_TIMESTAMP())";
                         if (!$dbConn->exec($sql, $albumId, $platform, $instanceData[self::PLATFORM_ID_FIELD])) {
@@ -615,7 +615,7 @@ final class Album extends BaseRouteProvider
                 }
 
                 foreach ($sessionAlbumData[self::INSTANCES_FIELD] as $platform => $instanceData) {
-                    if (!empty($instanceData)) {
+                    if (!empty($instanceData) && $instanceData[self::DATA_STATUS] != AlbumDataStatus::unknown) {
                         switch ($instanceData[self::DATA_STATUS]) {
                             case AlbumDataStatus::new:
                                 $sql = "INSERT INTO `album_instances` (`album_id`, `platform`, `platform_id`, `availability`, `last_availability_check`)
