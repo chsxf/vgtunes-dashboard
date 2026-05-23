@@ -124,7 +124,8 @@ final class Album extends BaseRouteProvider
                 }
             }
 
-            foreach (Platform::cases() as $platform) {
+            foreach (Platform::getEnabledPlatforms() as $platformCase => $_) {
+                $platform = Platform::from($platformCase);
                 if (!array_key_exists($platform->value, $sessionAlbumData[self::INSTANCES_FIELD])) {
                     $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
                     if (($exactMatch = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTISTS_FIELD])) !== null) {
@@ -266,7 +267,7 @@ final class Album extends BaseRouteProvider
         $validator->createField(self::QUERY_FIELD, FieldType::TEXT, '', extras: ['class' => 'form-control']);
         $f = $validator->createField(self::PLATFORM_FIELD, FieldType::SELECT, Platform::deezer->value, required: false, extras: ['class' => 'form-select']);
         if ($f instanceof WithOptions) {
-            $f->addOptions(Platform::PLATFORMS);
+            $f->addOptions(Platform::getEnabledPlatforms());
         }
 
         $previousSearches = [];

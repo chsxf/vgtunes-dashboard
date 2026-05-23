@@ -3,12 +3,23 @@
 use chsxf\MFX\RequestResult;
 use chsxf\MFX\Routers\RouterData;
 use chsxf\MFX\Services\ICoreServiceProvider;
+use PlatformHelpers\PlatformHelperFactory;
 
 final class GlobalCallbacks
 {
-    public static function main(ICoreServiceProvider $iCoreServiceProvider, RouterData $routerData): ?RequestResult
+    public static function main(ICoreServiceProvider $coreServiceProvider, RouterData $routerData): ?RequestResult
     {
-        $iCoreServiceProvider->getTemplateService()->getTwig()->addGlobal('platforms', Platform::PLATFORMS);
+        $tplService = $coreServiceProvider->getTemplateService();
+        $twig = $tplService->getTwig();
+
+        if (strcasecmp($routerData->route, 'DatabaseUpdater/update') != 0) {
+            PlatformHelperFactory::loadOptions($coreServiceProvider);
+            $twig->addGlobal('disbled_platform_helper_count', PlatformHelperFactory::getDisabledHelperCount());
+        }
+
+        $twig->addGlobal('platforms', Platform::PLATFORMS);
+        $twig->addGlobal('enabled_platforms', Platform::getEnabledPlatforms());
+
         return null;
     }
 

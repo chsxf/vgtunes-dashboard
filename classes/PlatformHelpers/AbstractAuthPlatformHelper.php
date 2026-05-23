@@ -8,7 +8,10 @@ use chsxf\MFX\Services\IDatabaseService;
 
 abstract class AbstractAuthPlatformHelper extends AbstractPlatformHelper
 {
-    public function __construct(protected IConfigService $configService, private IDatabaseService $databaseService, private IAuthenticationService $authService) {}
+    public function __construct(array $options, protected IConfigService $configService, private IDatabaseService $databaseService, private IAuthenticationService $authService)
+    {
+        parent::__construct($options);
+    }
 
     abstract protected function fetchAccessToken(): AuthAccessTokenData;
 

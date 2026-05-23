@@ -15,7 +15,10 @@ abstract class AbstractSteamPlatformHelper extends AbstractPlatformHelper
 
     abstract protected function sqlTypeClause(): string;
 
-    public function __construct(private readonly IDatabaseService $databaseService) {}
+    public function __construct(array $options, private readonly IDatabaseService $databaseService)
+    {
+        parent::__construct($options);
+    }
 
     public function getLookUpURL(string $platformId): string
     {

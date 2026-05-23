@@ -179,3 +179,12 @@ ALTER TABLE `album_instances`
 -- [VERSION: 21]
 
 DROP TABLE `featured_albums`;
+
+-- [VERSION: 22]
+
+CREATE TABLE `platform_helper_options` (
+  `platform` enum('apple_music','deezer','spotify','bandcamp','steam_game','steam_soundtrack','tidal') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `option` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `value` text COLLATE utf8mb4_general_ci,
+  PRIMARY KEY (`platform`,`option`(8))
+);

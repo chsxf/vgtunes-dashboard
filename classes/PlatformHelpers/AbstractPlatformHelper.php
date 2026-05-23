@@ -9,6 +9,9 @@ use PlatformAvailability;
 abstract class AbstractPlatformHelper
 {
     public const string PLATFORM_ID_PLACEHOLDER = '{PLATFORM_ID}';
+    public const string PLATFORM_OPTION_ENABLED = 'enabled';
+
+    public function __construct(protected array $options) {}
 
     public abstract function getPlatform(): Platform;
     public abstract function getLookUpURL(string $platformId): string;
@@ -28,6 +31,11 @@ abstract class AbstractPlatformHelper
     public function getAlbumAvailability(string $albumId): PlatformAvailability|false
     {
         return PlatformAvailability::Unknown;
+    }
+
+    public function isEnabled(): bool
+    {
+        return $this->options[self::PLATFORM_OPTION_ENABLED];
     }
 
     public abstract function supportsPagination(): bool;

@@ -1,0 +1,35 @@
+{% extends 'root.twig' %}
+
+{% block page_title "Platform Helpers" %}
+
+{% block page_content %}
+	{{ parent() }}
+
+	<table class="table table-striped">
+		<thead>
+			<th scope="col">Platform</th>
+			<th scope="col">&nbsp;</th>
+		</thead>
+		<tbody>
+			{% for platform_key, platform_name in platforms %}
+				<tr>
+					<td>{{ platform_name }}</td>
+					<td>
+						<form method="post" action="/PlatformHelpers/setOption">
+							<input type="hidden" name="platform" value="{{ platform_key|e('html_attr') }}"/>
+							<input type="hidden" name="option" value="enabled"/>
+							{% if options_by_helper[platform_key]['enabled'] %}
+								<input type="hidden" name="value" value="0"/>
+								<button type="submit" class="btn btn-sm btn-danger">Disable</button>
+							{% else %}
+								<input type="hidden" name="value" value="1"/>
+								<button type="submit" class="btn btn-sm btn-success">Enable</button>
+							{% endif %}
+						</form>
+					</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+{% endblock %}

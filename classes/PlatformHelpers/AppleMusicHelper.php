@@ -23,7 +23,10 @@ final class AppleMusicHelper extends AbstractPlatformHelper
 
     private ?int $nextPageIndex = null;
 
-    public function __construct(private IConfigService $configService) {}
+    public function __construct(array $options, private IConfigService $configService)
+    {
+        parent::__construct($options);
+    }
 
     public function getPlatform(): Platform
     {

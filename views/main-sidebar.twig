@@ -45,6 +45,16 @@
 		</li>
 
 		<li class="nav-item">
+			<a href="/PlatformHelpers/list" class="nav-link text-white">
+				<i class="bi bi-database-fill-gear me-2"></i>
+				Platform Helpers
+				{% if disbled_platform_helper_count > 0 %}
+					<span class="badge rounded-pill text-bg-danger bg-opacity-100">{{ disbled_platform_helper_count }}</span>
+				{% endif %}
+			</a>
+		</li>
+
+		<li class="nav-item">
 			<a href="/Analytics/show" class="nav-link text-white">
 				<i class="bi bi-graph-up me-2"></i>
 				Analytics
