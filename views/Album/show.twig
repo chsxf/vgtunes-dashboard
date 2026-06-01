@@ -32,7 +32,7 @@
 			<hr/>
 			{% for platform, platform_name in platforms %}
 				<div class="row mb-3">
-					<div class="col-1 text-end">
+					<div class="col-2 text-end">
 						{{ platform_name }}
 					</div>
 
@@ -71,20 +71,6 @@
 
 					<div class="col-auto">
 						<div class="row">
-							{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null and (album_details.instances[platform].data_status.value not in ['removed', 'unknown']) %}
-								<div class="col-auto">
-									<a href="{{ album_details.instances[platform].url }}" class="btn btn-sm btn-outline-success" target="_blank">Look Up</a>
-								</div>
-								<div class="col-auto">
-									<form method="post" action="/Album/removePlatform" onsubmit="return confirm('are you sure your want to remove it?');">
-										<input type="hidden" name="platform" value="{{ platform }}"/>
-										{% if is_new == false %}
-											<input type="hidden" name="album_id" value="{{ album_details.id }}"/>
-										{% endif %}
-										<button class="btn btn-sm btn-outline-danger">Remove</button>
-									</form>
-								</div>
-							{% endif %}
 							<div class="col-auto">
 								<form method="get" action="/Album/searchPlatform">
 									<input type="hidden" name="platform" value="{{ platform }}"/>
@@ -93,9 +79,44 @@
 									{% for name, value in search_query_params %}
 										<input type="hidden" name="{{ name }}" value="{{ value }}"/>
 									{% endfor %}
-									<button class="btn btn-sm btn-outline-primary">Search</button>
+									<button class="btn btn-sm btn-outline-primary" title="Search">
+										<i class="bi bi-search"></i>
+									</button>
 								</form>
 							</div>
+							<div class="col-auto">
+								{% set manual_edit_url = "/Album/add" %}
+								{% if is_new == false %}
+									{% set manual_edit_url = "/Album/edit/%d"|format(album_details.id) %}
+								{% endif %}
+								<form method="post" action="{{ manual_edit_url|e('html_attr') }}">
+									<input type="hidden" name="platform" value="{{ platform }}"/>
+									<input type="hidden" name="title" value="n/a"/>
+									<input type="hidden" name="artists" value="n/a"/>
+									<input type="hidden" name="platform_id" value="0"/>
+									<button type="button" class="btn btn-sm btn-outline-warning" title="Edit manually" onclick="editAlbumManually(form, '{{ platform_name }}')">
+										<i class="bi bi-pencil"></i>
+									</button>
+								</form>
+							</div>
+							{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null and (album_details.instances[platform].data_status.value not in ['removed', 'unknown']) %}
+								<div class="col-auto">
+									<a href="{{ album_details.instances[platform].url }}" class="btn btn-sm btn-outline-success" target="_blank" title="Look Up">
+										<i class="bi bi-box-arrow-right"></i>
+									</a>
+								</div>
+								<div class="col-auto">
+									<form method="post" action="/Album/removePlatform" onsubmit="return confirm('are you sure your want to remove it?');">
+										<input type="hidden" name="platform" value="{{ platform }}"/>
+										{% if is_new == false %}
+											<input type="hidden" name="album_id" value="{{ album_details.id }}"/>
+										{% endif %}
+										<button class="btn btn-sm btn-outline-danger" title="Remove">
+											<i class="bi bi-trash3"></i>
+										</button>
+									</form>
+								</div>
+							{% endif %}
 						</div>
 					</div>
 				</div>

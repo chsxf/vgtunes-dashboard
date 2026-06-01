@@ -440,6 +440,9 @@ final class Album extends BaseRouteProvider
     {
         $sessionService = $this->serviceProvider->getSessionService();
 
+        $scripts = $this->serviceProvider->getScriptService();
+        $scripts->add('js/album-manual-edit.js');
+
         $isSavedAlbum = !empty($params);
 
         $albumId = null;
