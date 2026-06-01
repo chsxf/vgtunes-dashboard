@@ -44,13 +44,24 @@
 			</a>
 		</li>
 
-		<li class="nav-item">
+		<li class="nav-item text-nowrap">
 			<a href="/PlatformHelpers/list" class="nav-link text-white">
 				<i class="bi bi-database-fill-gear me-2"></i>
 				Platform Helpers
-				{% if disbled_platform_helper_count > 0 %}
-					<span class="badge rounded-pill text-bg-danger bg-opacity-100">{{ disbled_platform_helper_count }}</span>
+
+				{% if disabled_platform_helper_count > 0 %}
+					{% set bg_class = "text-bg-danger" %}
+				{% else %}
+					{% set bg_class = "text-bg-secondary" %}
 				{% endif %}
+				<span class="badge rounded-pill {{ bg_class }} bg-opacity-100">{{ disabled_platform_helper_count }}</span>
+
+				{% if auto_search_disabled_platform_helper_count > 0 %}
+					{% set bg_class = "text-bg-danger" %}
+				{% else %}
+					{% set bg_class = "text-bg-secondary" %}
+				{% endif %}
+				<span class="badge rounded-pill {{ bg_class }} bg-opacity-100">{{ auto_search_disabled_platform_helper_count }}</span>
 			</a>
 		</li>
 

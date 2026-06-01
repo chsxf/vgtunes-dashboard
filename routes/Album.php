@@ -18,6 +18,7 @@ use chsxf\MFX\RequestResult;
 use chsxf\MFX\Routers\BaseRouteProvider;
 use chsxf\MFX\Services\IConfigService;
 use chsxf\MFX\StringTools;
+use PlatformHelpers\AbstractPlatformHelper;
 use PlatformHelpers\PlatformHelperFactory;
 use PlatformHelpers\SteamGamePlatformHelper;
 
@@ -124,15 +125,17 @@ final class Album extends BaseRouteProvider
                 }
             }
 
-            foreach (Platform::getEnabledPlatforms() as $platformCase => $_) {
+            foreach (Platform::PLATFORMS as $platformCase => $_) {
                 $platform = Platform::from($platformCase);
                 if (!array_key_exists($platform->value, $sessionAlbumData[self::INSTANCES_FIELD])) {
                     $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
-                    if (($exactMatch = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTISTS_FIELD])) !== null) {
-                        $exactMatch[self::DATA_STATUS] = AlbumDataStatus::new;
-                        $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = $exactMatch;
-                    } else {
-                        $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = [self::DATA_STATUS => AlbumDataStatus::unknown];
+                    if (!empty($helper->autoSearchEnabled)) {
+                        if (($exactMatch = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTISTS_FIELD])) !== null) {
+                            $exactMatch[self::DATA_STATUS] = AlbumDataStatus::new;
+                            $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = $exactMatch;
+                        } else {
+                            $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = [self::DATA_STATUS => AlbumDataStatus::unknown];
+                        }
                     }
                 }
             }
@@ -267,7 +270,7 @@ final class Album extends BaseRouteProvider
         $validator->createField(self::QUERY_FIELD, FieldType::TEXT, '', extras: ['class' => 'form-control']);
         $f = $validator->createField(self::PLATFORM_FIELD, FieldType::SELECT, Platform::deezer->value, required: false, extras: ['class' => 'form-select']);
         if ($f instanceof WithOptions) {
-            $f->addOptions(Platform::getEnabledPlatforms());
+            $f->addOptions(Platform::PLATFORMS);
         }
 
         $previousSearches = [];
@@ -439,6 +442,7 @@ final class Album extends BaseRouteProvider
 
         $isSavedAlbum = !empty($params);
 
+        $albumId = null;
         $albumDetails = null;
         if ($isSavedAlbum) {
             $albumId = intval($params[0]);

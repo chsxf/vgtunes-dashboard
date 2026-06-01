@@ -44,7 +44,8 @@ final class PlatformHelperFactory
     private static function getDefaultOptions(): array
     {
         return [
-            AbstractPlatformHelper::PLATFORM_OPTION_ENABLED => true
+            AbstractPlatformHelper::PLATFORM_OPTION_ENABLED => true,
+            AbstractPlatformHelper::PLATFORM_OPTION_AUTO_SEARCH_ENABLED => true
         ];
     }
 
@@ -52,6 +53,7 @@ final class PlatformHelperFactory
     {
         switch ($option) {
             case AbstractPlatformHelper::PLATFORM_OPTION_ENABLED:
+            case AbstractPlatformHelper::PLATFORM_OPTION_AUTO_SEARCH_ENABLED:
                 return !empty($value);
 
             default:
@@ -59,21 +61,32 @@ final class PlatformHelperFactory
         }
     }
 
-    public static function isPlatformEnabled(Platform $platform): bool
+    public static function getPlatformOptionValue(Platform $platform, string $option): mixed
     {
-        $platformOptions = self::$options[$platform->value] ?? self::getDefaultOptions();
-        return $platformOptions[AbstractPlatformHelper::PLATFORM_OPTION_ENABLED];
+        return self::$options[$platform->value][$option] ?? null;
     }
 
-    public static function getDisabledHelperCount(): int
+    public static function getHelperCount(callable $predicate): int
     {
         $total = 0;
-        array_walk(self::$options, function ($value, $key) use (&$total) {
-            if ($value[AbstractPlatformHelper::PLATFORM_OPTION_ENABLED] === false) {
+        foreach (self::$options as $platformOptions) {
+            if ($predicate($platformOptions)) {
                 $total++;
             }
-        });
+        }
         return $total;
+    }
+
+    public static function getMatchingPlatforms(callable $predicate): array
+    {
+        $result = [];
+        foreach (Platform::PLATFORMS as $platformKey => $platformLabel) {
+            $platformOptions = self::$options[$platformKey] ?? self::getDefaultOptions();
+            if (!empty($platformOptions[AbstractPlatformHelper::PLATFORM_OPTION_ENABLED]) && $predicate($platformOptions)) {
+                $result[$platformKey] = $platformLabel;
+            }
+        }
+        return $result;
     }
 
     public static function get(Platform $platform, ICoreServiceProvider $serviceProvider): ?AbstractPlatformHelper

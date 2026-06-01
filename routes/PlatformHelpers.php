@@ -21,9 +21,11 @@ final class PlatformHelpers extends BaseRouteProvider
     #[Route, RequiredRequestMethod(RequestMethod::GET)]
     public function list(): RequestResult
     {
+        $scripts = $this->serviceProvider->getScriptService();
+        $scripts->add('js/platform-helper-options.js');
+
         return new RequestResult(data: [
-            'options_by_helper' => PlatformHelperFactory::getOptions(),
-            'enabled_platforms' => Platform::getEnabledPlatforms()
+            'options_by_helper' => PlatformHelperFactory::getOptions()
         ]);
     }
 
@@ -34,7 +36,10 @@ final class PlatformHelpers extends BaseRouteProvider
         $validator->createField('platform', FieldType::TEXT)
             ->addFilter(new In(array_keys(Platform::PLATFORMS)));
         $validator->createField('option', FieldType::TEXT)
-            ->addFilter(new In([AbstractPlatformHelper::PLATFORM_OPTION_ENABLED]));
+            ->addFilter(new In([
+                AbstractPlatformHelper::PLATFORM_OPTION_ENABLED,
+                AbstractPlatformHelper::PLATFORM_OPTION_AUTO_SEARCH_ENABLED
+            ]));
         $validator->createField('value', FieldType::POSITIVEZERO_INTEGER)
             ->addFilter(new InIntRange(0, 1, true));
 

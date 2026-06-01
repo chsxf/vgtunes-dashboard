@@ -18,12 +18,17 @@
 						<form method="post" action="/PlatformHelpers/setOption">
 							<input type="hidden" name="platform" value="{{ platform_key|e('html_attr') }}"/>
 							<input type="hidden" name="option" value="enabled"/>
+							<input type="hidden" name="value" value="0"/>
 							{% if options_by_helper[platform_key]['enabled'] %}
-								<input type="hidden" name="value" value="0"/>
-								<button type="submit" class="btn btn-sm btn-danger">Disable</button>
+								<button type="button" class="btn btn-sm btn-danger" onclick="changeForm(form, 'enabled', 0)">Disable</button>
+
+								{% if options_by_helper[platform_key]['auto_search_enabled'] %}
+									<button type="button" class="btn btn-sm btn-danger" onclick="changeForm(form, 'auto_search_enabled', 0)">Disable auto search</button>
+								{% else %}
+									<button type="button" class="btn btn-sm btn-success" onclick="changeForm(form, 'auto_search_enabled', 1)">Enable auto search</button>
+								{% endif %}
 							{% else %}
-								<input type="hidden" name="value" value="1"/>
-								<button type="submit" class="btn btn-sm btn-success">Enable</button>
+								<button type="button" class="btn btn-sm btn-success" onclick="changeForm(form, 'enabled', 1)">Enable</button>
 							{% endif %}
 						</form>
 					</td>

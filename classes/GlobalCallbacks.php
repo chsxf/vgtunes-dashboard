@@ -3,6 +3,7 @@
 use chsxf\MFX\RequestResult;
 use chsxf\MFX\Routers\RouterData;
 use chsxf\MFX\Services\ICoreServiceProvider;
+use PlatformHelpers\AbstractPlatformHelper;
 use PlatformHelpers\PlatformHelperFactory;
 
 final class GlobalCallbacks
@@ -14,11 +15,17 @@ final class GlobalCallbacks
 
         if (strcasecmp($routerData->route, 'DatabaseUpdater/update') != 0) {
             PlatformHelperFactory::loadOptions($coreServiceProvider);
-            $twig->addGlobal('disbled_platform_helper_count', PlatformHelperFactory::getDisabledHelperCount());
+            $twig->addGlobal('auto_search_disabled_platform_helper_count', PlatformHelperFactory::getHelperCount(function ($options) {
+                $enabled = $options[AbstractPlatformHelper::PLATFORM_OPTION_AUTO_SEARCH_ENABLED] ?? true;
+                return !$enabled;
+            }));
+            $twig->addGlobal('disabled_platform_helper_count', PlatformHelperFactory::getHelperCount(function ($options) {
+                $enabled = $options[AbstractPlatformHelper::PLATFORM_OPTION_ENABLED] ?? true;
+                return !$enabled;
+            }));
         }
 
         $twig->addGlobal('platforms', Platform::PLATFORMS);
-        $twig->addGlobal('enabled_platforms', Platform::getEnabledPlatforms());
 
         return null;
     }

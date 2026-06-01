@@ -1,5 +1,6 @@
 <?php
 
+use PlatformHelpers\AbstractPlatformHelper;
 use PlatformHelpers\PlatformHelperFactory;
 
 enum Platform: string
@@ -25,13 +26,5 @@ enum Platform: string
     public function getLabel()
     {
         return self::PLATFORMS[$this->value];
-    }
-
-    public static function getEnabledPlatforms(): array
-    {
-        return array_filter(self::PLATFORMS, function ($key) {
-            $platform = Platform::from($key);
-            return PlatformHelperFactory::isPlatformEnabled($platform);
-        }, ARRAY_FILTER_USE_KEY);
     }
 }
