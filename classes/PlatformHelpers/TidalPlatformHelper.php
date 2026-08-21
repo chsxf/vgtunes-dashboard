@@ -12,7 +12,7 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
 {
     use SearchExactMatchTrait, DistanceResultSorterTrait;
 
-    private const string API_SEARCH_URL = 'https://openapi.tidal.com/v2/searchResults/{QUERY}';
+    private const string API_SEARCH_URL = 'https://openapi.tidal.com/v2/searchResults';
     private const string API_MULTIPLE_ALBUMS_URL = 'https://openapi.tidal.com/v2/albums';
     private const string API_ALBUM_URL = 'https://openapi.tidal.com/v2/albums/' . AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER;
     private const string ALBUM_LOOKUP_URL = "https://tidal.com/album/" . AbstractPlatformHelper::PLATFORM_ID_PLACEHOLDER;
@@ -72,14 +72,13 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
 
     public function search(string $query, ?int $startAt = null): array
     {
-        $encodedQquery = rawurlencode($query);
-        $url = str_replace('{QUERY}', $encodedQquery, self::API_SEARCH_URL);
         $queryParams = [
+            'filter[query]' => $query,
             'countryCode' => 'US',
-            'explicitFilter' => 'include,exclude',
+            'explicitFilter' => 'include',
             'include' => 'albums'
         ];
-        $decodedJson = $this->queryAPI($url, $queryParams);
+        $decodedJson = $this->queryAPI(self::API_SEARCH_URL, $queryParams);
         if (empty($decodedJson['included'])) {
             return [];
         }
