@@ -166,13 +166,11 @@ class SteamProductsUpdater extends AbstractAutomatedAction
         $result = curl_exec($ch);
         if ($result === false) {
             $error = curl_error($ch);
-            curl_close($ch);
             throw new PlatformHelperException($error);
         } else if (($http_status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE)) !== 200) {
             $httpStatusCode = HttpStatusCodes::tryFrom($http_status);
             throw new PlatformHelperException("Server responded with HTTP status code {$http_status}", $httpStatusCode);
         }
-        curl_close($ch);
 
         try {
             $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);

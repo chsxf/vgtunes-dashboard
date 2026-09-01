@@ -30,6 +30,16 @@
 			</a>
 		</li>
 
+		{% if remaining_bulk_selection is defined %}
+			<li class="nav-item border-rounded bg {% if disable_bulk_selection_link is defined %}bg-secondary{% else %}bg-success{% endif %}">
+				<a href="/Album/add?continue_with_bulk_selection=1" class="nav-link text-white {% if disable_bulk_selection_link is defined %}disabled{% endif %}">
+					<i class="bi bi-stack me-2"></i>
+					Add next album
+					<span class="badge rounded-pill text-bg-warning bg-opacity-100">{{ remaining_bulk_selection }}</span>
+				</a>
+			</li>
+		{% endif %}
+
 		<li class="nav-item">
 			<a href="/Album/searchPlatform" class="nav-link text-white">
 				<i class="bi bi-binoculars me-2"></i>

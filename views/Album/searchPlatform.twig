@@ -21,6 +21,7 @@
 		{% dv_field validator 'title_prefix' 'title_prefix' 'hidden' %}
 		{% dv_field validator 'callback' 'callback' 'hidden' %}
 		{% dv_field validator 'back_url' 'back_url' 'hidden' %}
+		{% dv_field validator 'allow_bulk_selection' 'allow_bulk_selection' 'hidden' %}
 		<div class="col-9">
 			{% dv_field validator 'q' %}
 		</div>
@@ -35,26 +36,42 @@
 	{% if search_results is not null %}
 		<div class="alert alert-light">
 			<div class="row">
-				<div class="col-6">{{ "%d results found"|format(search_results|length) }}</div>
-				{% if next_page_validator is defined %}
-					<div class="col-6 text-end">
-						<form method="get">
-							{% dv_field next_page_validator 'title_prefix' 'title_prefix' 'hidden' %}
-							{% dv_field next_page_validator 'callback' 'callback' 'hidden' %}
-							{% dv_field next_page_validator 'back_url' 'back_url' 'hidden' %}
-							{% dv_field next_page_validator 'start_at' 'start_at' 'hidden' %}
-							{% dv_field next_page_validator 'q' 'q' 'hidden' %}
-							{% dv_field next_page_validator 'platform' 'platform' 'hidden' %}
-							<button type="submit" class="btn btn-sm btn-warning">Next Page</button>
-						</form>
+				<div class="col-8">{{ "%d results found"|format(search_results|length) }}</div>
+				<div class="col-4 text-end">
+					<div class="row">
+						<div class="col-6">
+							{% if next_page_validator is defined %}
+								<form method="get">
+									{% dv_field next_page_validator 'title_prefix' 'title_prefix' 'hidden' %}
+									{% dv_field next_page_validator 'callback' 'callback' 'hidden' %}
+									{% dv_field next_page_validator 'back_url' 'back_url' 'hidden' %}
+									{% dv_field next_page_validator 'start_at' 'start_at' 'hidden' %}
+									{% dv_field next_page_validator 'q' 'q' 'hidden' %}
+									{% dv_field next_page_validator 'platform' 'platform' 'hidden' %}
+									{% dv_field next_page_validator 'allow_bulk_selection' 'allow_bulk_selection' 'hidden' %}
+									<button type="submit" class="btn btn-warning">Next Page</button>
+								</form>
+							{% endif %}
+						</div>
+						<div class="col-6">
+							{% if allow_bulk_selection %}
+								<form method="post" id="bulk_selection_form" action="/Album/initBulkAddition">
+									{% dv_field bulk_selection_validator 'bulk_selection' 'bulk_selection' 'hidden' %}
+									<button type="button" class="btn btn-primary" id="bulk_selection_button" disabled>Select multiple</button>
+								</form>
+							{% endif %}
+						</div>
 					</div>
-				{% endif %}
+				</div>
 			</div>
 		</div>
 
 		{% if search_results is not empty %}
 			<table class="table table-striped table-hover">
 				<thead>
+					{% if allow_bulk_selection %}
+						<th scope="col">&nbsp;</th>
+					{% endif %}
 					<th scope="col">&nbsp;</th>
 					<th scope="col">Title</th>
 					<th scope="col">Artist</th>
@@ -69,6 +86,11 @@
 							{% set additional_class = 'table-danger' %}
 						{% endif %}
 						<tr class="{{ additional_class }}">
+							{% if allow_bulk_selection %}
+								<td class="align-middle">
+									<input type="checkbox" class="form-check-input bulk-edit-checkbox"/>
+								</td>
+							{% endif %}
 							<td class="align-middle">
 								{% if result.cover_url is not empty %}
 									<img src="{{ result.cover_url }}" width="64">
@@ -129,6 +151,7 @@
 								{% dv_field search_validator 'title_prefix' 'title_prefix' 'hidden' %}
 								{% dv_field search_validator 'callback' 'callback' 'hidden' %}
 								{% dv_field search_validator 'back_url' 'back_url' 'hidden' %}
+								{% dv_field search_validator 'allow_bulk_selection' 'allow_bulk_selection' 'hidden' %}
 								{% dv_field search_validator 'q' 'q' 'hidden' %}
 								<button class="btn btn-primary">Search Again</button>
 							</form>

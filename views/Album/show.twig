@@ -15,15 +15,15 @@
 			<div class="row mb-3">
 				<img src="{{ album_details.cover_url }}" style="width: 100%"/>
 			</div>
-			<div class="row mb-3">
-				{% if album_details.slug is not defined or album_details.new_data %}
+			{% if album_details.slug is not defined or album_details.new_data %}
+				<div class="row mb-3">
 					<div class="col-auto">
 						<form action="{{ album_details.new_data ? '/Album/commit/%d'|format(album_details.id) : '/Album/commit' }}" method="post">
 							<button class="btn btn-warning">Commit</button>
 						</form>
 					</div>
-				{% endif %}
-			</div>
+				</div>
+			{% endif %}
 		</div>
 
 		<div class="col-10">

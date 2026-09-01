@@ -207,10 +207,8 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
 
         if ($result === false) {
             $error = curl_error($ch);
-            curl_close($ch);
             throw new PlatformHelperException($error);
         }
-        curl_close($ch);
 
         try {
             $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);

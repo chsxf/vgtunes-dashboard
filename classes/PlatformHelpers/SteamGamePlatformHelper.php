@@ -24,7 +24,6 @@ class SteamGamePlatformHelper extends AbstractSteamPlatformHelper
         if (curl_errno($ch) || curl_getinfo($ch, CURLINFO_HTTP_CODE) == 404) {
             $heroCapsuleUrl = null;
         }
-        curl_close($ch);
 
         return $heroCapsuleUrl;
     }

@@ -23,6 +23,13 @@ final class GlobalCallbacks
                 $enabled = $options[AbstractPlatformHelper::PLATFORM_OPTION_ENABLED] ?? true;
                 return !$enabled;
             }));
+
+            if (!empty($_SESSION[Album::SESS_BULK_SELECTION]) && is_array($_SESSION[Album::SESS_BULK_SELECTION])) {
+                $twig->addGlobal('remaining_bulk_selection', count($_SESSION[Album::SESS_BULK_SELECTION]));
+                if ($routerData->route == 'Album/show') {
+                    $twig->addGlobal('disable_bulk_selection_link', true);
+                }
+            }
         }
 
         $twig->addGlobal('platforms', Platform::PLATFORMS);
