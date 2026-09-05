@@ -16,6 +16,7 @@ final class PlatformAlbum implements IteratorAggregate
 
     public bool $existsInDatabase;
     public int $potentialDuplicate;
+    public ?int $numberOfTracks = null;
 
     public function __construct(
         public readonly string $title,
@@ -56,12 +57,5 @@ final class PlatformAlbum implements IteratorAggregate
             }
         }
         return false;
-    }
-
-    public function applyToValidator(DataValidator $dataValidator)
-    {
-        $asArray = iterator_to_array($this);
-        $asArray['artists'] = json_encode($asArray['artists']);
-        $dataValidator->validate($asArray, true);
     }
 }

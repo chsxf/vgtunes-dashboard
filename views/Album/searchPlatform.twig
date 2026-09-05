@@ -101,6 +101,12 @@
 							<td class="align-middle">{{ result.title }}
 								<br/><small>
 									<span class="text-secondary">{{ result.platform_id }}</span>
+									-
+									<span class="text-secondary">Tracks:
+										{% if result.numberOfTracks > 0 %}
+											{{ result.numberOfTracks }}{% else %}N/A
+										{% endif %}
+									</span>
 									{% if result.existsInDatabase %}
 										-
 										<span class="text-success">Already in database</span>

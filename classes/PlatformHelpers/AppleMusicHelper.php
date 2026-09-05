@@ -96,7 +96,9 @@ final class AppleMusicHelper extends AbstractPlatformHelper
                 $coverUrl = $albumAttributes['artwork']['url'];
                 $coverUrl = str_replace(['{w}', '{h}'], 1000, $coverUrl);
 
-                $results[] = new PlatformAlbum($albumAttributes['name'], $album['id'], [$albumAttributes['artistName']], $coverUrl);
+                $entry = new PlatformAlbum($albumAttributes['name'], $album['id'], [$albumAttributes['artistName']], $coverUrl);
+                $entry->numberOfTracks = $albumAttributes['trackCount'];
+                $results[] = $entry;
             }
         }
         return $results;

@@ -92,7 +92,8 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
                 $distance = self::computeDistance($title, $queryWords, $queryLength);
                 $albumDetails = [
                     'title' => $title,
-                    'id' => $album['id']
+                    'id' => $album['id'],
+                    'numberOfTracks' => $album['attributes']['numberOfItems']
                 ];
                 $results[$album['id']] = [$albumDetails, $distance];
             }
@@ -125,7 +126,9 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
             }
 
             $partialDetails = $results[$albumId][0];
-            $results[$albumId][0] = new PlatformAlbum($partialDetails['title'], $albumId, $artists, $coverUrl);
+            $entry             = new PlatformAlbum($partialDetails['title'], $albumId, $artists, $coverUrl);
+            $entry->numberOfTracks = $partialDetails['numberOfTracks'];
+            $results[$albumId][0] = $entry;
         }
 
         $results = array_values($results);

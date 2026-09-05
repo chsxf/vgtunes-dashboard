@@ -69,7 +69,9 @@ final class DeezerPlatformHelper extends AbstractPlatformHelper
 
         $entries = [];
         foreach ($decodedSearchResults['data'] as $entry) {
-            $entries[] = new PlatformAlbum($entry['title'], $entry['id'], [$entry['artist']['name']], $entry['cover_xl']);
+            $album = new PlatformAlbum($entry['title'], $entry['id'], [$entry['artist']['name']], $entry['cover_xl']);
+            $album->numberOfTracks = $entry['nb_tracks'];
+            $entries[] = $album;
         }
         return $entries;
     }

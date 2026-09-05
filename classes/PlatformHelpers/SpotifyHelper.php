@@ -6,7 +6,6 @@ use chsxf\MFX\HttpStatusCodes;
 use JsonException;
 use Platform;
 use PlatformAlbum;
-use PlatformAvailability;
 
 final class SpotifyHelper extends AbstractAuthPlatformHelper
 {
@@ -83,7 +82,9 @@ final class SpotifyHelper extends AbstractAuthPlatformHelper
         $results = [];
         foreach ($decodedJson['albums']['items'] as $album) {
             $artists = array_map(fn($item) => $item['name'], $album['artists']);
-            $results[] = new PlatformAlbum($album['name'], $album['id'], $artists, $album['images'][0]['url']);
+            $entry = new PlatformAlbum($album['name'], $album['id'], $artists, $album['images'][0]['url']);
+            $entry->numberOfTracks = $album['total_tracks'];
+            $results[] = $entry;
         }
         return $results;
     }
