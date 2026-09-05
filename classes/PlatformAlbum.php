@@ -35,7 +35,7 @@ final class PlatformAlbum implements IteratorAggregate
 
     public function getIterator(): Traversable
     {
-        return new ArrayIterator($this);
+        return new ArrayIterator((object) $this);
     }
 
     public static function cleanupAlbumTitle(string $albumTitle): string
