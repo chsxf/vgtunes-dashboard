@@ -58,4 +58,11 @@ final class PlatformAlbum implements IteratorAggregate
         }
         return false;
     }
+
+    public function applyToValidator(DataValidator $dataValidator)
+    {
+        $asArray = iterator_to_array($this);
+        $asArray['artists'] = json_encode($asArray['artists']);
+        $dataValidator->validate($asArray, true);
+    }
 }
