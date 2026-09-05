@@ -24,7 +24,7 @@ use PlatformHelpers\SteamGamePlatformHelper;
 
 final class Album extends BaseRouteProvider
 {
-    private const string SESS_ALBUM_DATA = 'album-data';
+    public const string SESS_ALBUM_DATA = 'album-data';
     public const string SESS_BULK_SELECTION = 'bulk-selection';
 
     private const string FUNCTION = 'function';

@@ -26,7 +26,7 @@ final class GlobalCallbacks
 
             if (!empty($_SESSION[Album::SESS_BULK_SELECTION]) && is_array($_SESSION[Album::SESS_BULK_SELECTION])) {
                 $twig->addGlobal('remaining_bulk_selection', count($_SESSION[Album::SESS_BULK_SELECTION]));
-                if ($routerData->route == 'Album/show') {
+                if ($routerData->route == 'Album/show' && !empty($_SESSION[Album::SESS_ALBUM_DATA])) {
                     $twig->addGlobal('disable_bulk_selection_link', true);
                 }
             }
