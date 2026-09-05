@@ -107,7 +107,7 @@ class Automation extends BaseRouteProvider
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
         }
 
-        $this->serviceProvider->getScriptService()->add('/js/automation-home.js', defer: true);
+        $this->serviceProvider->getScriptService()->add('js/automation-home.js', defer: true);
         return new RequestResult(data: ['validator' => $actionValidator, 'additional_fields' => $additionalFields]);
     }
 
@@ -151,7 +151,7 @@ class Automation extends BaseRouteProvider
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
         }
 
-        $this->serviceProvider->getScriptService()->add('/js/automation.js', defer: true);
+        $this->serviceProvider->getScriptService()->add('js/automation.js', defer: true);
         return new RequestResult(data: [
             'cooldown' => $automatedAction->getCooldown(),
             'action_class' => get_class($automatedAction)
