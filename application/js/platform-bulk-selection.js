@@ -11,7 +11,12 @@ function registerBulkCheckboxes() {
 }
 
 function updateSelectedCheckboxes() {
-  $(BULK_SELECTION_BUTTON_ID).prop("disabled", getCheckedBoxes().length <= 1);
+  const button = $(BULK_SELECTION_BUTTON_ID);
+  const checkedBoxCount = getCheckedBoxes().length;
+  const isDisabled = checkedBoxCount <= 1;
+  button.prop("disabled", isDisabled);
+  const baseText = "Select Multiple";
+  button.text(isDisabled ? baseText : `${baseText} (${checkedBoxCount})`);
 }
 
 function registerBulkSelectButton() {
