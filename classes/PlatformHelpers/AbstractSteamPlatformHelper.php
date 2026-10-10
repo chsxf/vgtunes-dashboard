@@ -69,21 +69,38 @@ abstract class AbstractSteamPlatformHelper extends AbstractPlatformHelper
     {
         $query = $title;
 
+        $suffixes = array_merge([''], $this->additionalExactMatchSuffixes());
+
         foreach (PlatformAlbum::CLEAN_REGEXP as $replacementRegex) {
             if ($replacementRegex !== null) {
                 $query = trim(preg_replace($replacementRegex, '', $query));
             }
 
-            $passQueryResults = $this->search($query);
-            foreach ($passQueryResults as $result) {
-                $resultTitle = PlatformAlbum::cleanupAlbumTitle($result->title);
-                if (strcasecmp($resultTitle, $query) == 0) {
-                    return iterator_to_array($result);
+            foreach ($suffixes as $suffix) {
+                $suffixedQuery = $query;
+                if (!empty($suffix)) {
+                    if (!preg_match('/^\s/', $suffix)) {
+                        $suffixedQuery .= ' ';
+                    }
+                    $suffixedQuery .= $suffix;
+                }
+
+                $passQueryResults = $this->search($suffixedQuery);
+                foreach ($passQueryResults as $result) {
+                    $resultTitle = PlatformAlbum::cleanupAlbumTitle($result->title);
+                    if (strcasecmp($resultTitle, $suffixedQuery) == 0) {
+                        return iterator_to_array($result);
+                    }
                 }
             }
         }
 
         return null;
+    }
+
+    protected function additionalExactMatchSuffixes(): array
+    {
+        return [];
     }
 
     public function getAlbumDetails(string $albumId): PlatformAlbum|false|null

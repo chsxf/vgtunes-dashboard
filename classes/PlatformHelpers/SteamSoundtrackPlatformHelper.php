@@ -3,6 +3,7 @@
 namespace PlatformHelpers;
 
 use AutomatedActions\SteamProductType;
+use Override;
 use Platform;
 
 class SteamSoundtrackPlatformHelper extends AbstractSteamPlatformHelper
@@ -15,5 +16,11 @@ class SteamSoundtrackPlatformHelper extends AbstractSteamPlatformHelper
     public function getPlatform(): Platform
     {
         return Platform::steamSoundtrack;
+    }
+
+    #[Override]
+    protected function additionalExactMatchSuffixes(): array
+    {
+        return ['soundtrack'];
     }
 }
