@@ -18,7 +18,7 @@ final class JsonGenerator extends BaseRouteProvider
         if (!$this->serviceProvider->getAuthenticationService()->hasAuthenticatedUser()) {
             $validToken = $this->serviceProvider->getConfigService()->getValue('generator.key');
             $receivedToken = trim($_SERVER['HTTP_VGTUNES_TOKEN'] ?? '');
-            if (empty($receivedToken) || base64_decode($receivedToken) != $validToken) {
+            if (empty($receivedToken) || ($decodedToken = base64_decode($receivedToken, true)) === false || !hash_equals($validToken, $decodedToken)) {
                 return RequestResult::buildJSONRequestResult([], statusCode: HttpStatusCodes::unauthorized);
             }
         }
