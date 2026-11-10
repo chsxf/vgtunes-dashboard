@@ -12,6 +12,13 @@ use chsxf\MFX\Routers\BaseRouteProvider;
 
 final class JsonGenerator extends BaseRouteProvider
 {
+    // Both tokens are HMAC'd with this fixed context before being passed to hash_equals() so that
+    // the two operands always share the same length: hash_equals() returns false immediately on
+    // differing lengths, which may leak the length of the known string (see the note in the PHP
+    // documentation for hash_equals()). This value is not a secret, and it is not a validity window:
+    // changing it does not rotate or expire the generator key, it only changes the digest domain.
+    private const TOKEN_MAC_CONTEXT = 'normalizing';
+
     #[Route, AnonymousRoute, RequiredRequestMethod(RequestMethod::GET)]
     public function generate(): RequestResult
     {
@@ -22,9 +29,9 @@ final class JsonGenerator extends BaseRouteProvider
                 return RequestResult::buildJSONRequestResult([], statusCode: HttpStatusCodes::unauthorized);
             }
 
-            $time = date('c');
-            $validHash = hash_hmac('sha256', $validToken, $time);
-            $decodedHash = hash_hmac('sha256', $decodedToken, $time);
+            // Fixed-length digests, see TOKEN_MAC_CONTEXT
+            $validHash = hash_hmac('sha256', $validToken, self::TOKEN_MAC_CONTEXT);
+            $decodedHash = hash_hmac('sha256', $decodedToken, self::TOKEN_MAC_CONTEXT);
             if (!hash_equals($validHash, $decodedHash)) {
                 return RequestResult::buildJSONRequestResult([], statusCode: HttpStatusCodes::unauthorized);
             }
