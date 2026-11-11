@@ -276,6 +276,140 @@ final class Album extends BaseRouteProvider
         }
     }
 
+    #[Route, RequiredRequestMethod(RequestMethod::POST)]
+    public function replaceMetaData(): RequestResult
+    {
+        $dbService = $this->serviceProvider->getDatabaseService();
+        $dbConn = $dbService->open();
+
+        $validator = new DataValidator();
+        $validator->createField(self::ALBUM_ID, FieldType::POSITIVE_INTEGER, required: false)
+            ->addFilter(new ExistsInDB('albums', 'id', $dbConn));
+        $validator->createField(self::PLATFORM_FIELD, FieldType::TEXT)
+            ->addFilter(new In(array_keys(Platform::PLATFORMS)));
+
+        if (!$validator->validate($_POST)) {
+            return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+        }
+
+        $albumId = $validator->getFieldValue(self::ALBUM_ID, true);
+        $platform = Platform::from($validator[self::PLATFORM_FIELD]);
+        $isNew = empty($albumId);
+
+        if ($isNew) {
+            $sessionService = $this->serviceProvider->getSessionService();
+            if (!isset($sessionService[self::SESS_ALBUM_DATA])) {
+                return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+            }
+
+            $sessionAlbumData = $sessionService[self::SESS_ALBUM_DATA];
+            if (!isset($sessionAlbumData[self::INSTANCES_FIELD][$platform->value][self::PLATFORM_ID_FIELD])) {
+                return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+            }
+
+            $platformId = $sessionAlbumData[self::INSTANCES_FIELD][$platform->value][self::PLATFORM_ID_FIELD];
+            try {
+                $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
+                $albumDetails = $helper->getAlbumDetails($platformId);
+            } catch (Exception $e) {
+                trigger_error($e->getMessage());
+                return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
+            }
+
+            $sessionAlbumData[self::TITLE_FIELD] = $albumDetails->title;
+            $sessionAlbumData[self::ARTISTS_FIELD] = $albumDetails->artists;
+            $sessionService[self::SESS_ALBUM_DATA] = $sessionAlbumData;
+
+            return RequestResult::buildRedirectRequestResult("/Album/show");
+        } else {
+            $sql = "SELECT `platform_id` FROM `album_instances` WHERE `album_id` = ? AND `platform` = ?";
+            $platformId = $dbConn->getValue($sql, $albumId, $platform->value);
+            if ($platformId === false) {
+                return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+            }
+
+            $sql = "SELECT `artist_id`, `artist_order` FROM `album_artists` WHERE `album_id` = ? ORDER BY `artist_order` ASC";
+            $orderedArtistList = $dbConn->get($sql, \PDO::FETCH_ASSOC, $albumId);
+            if ($orderedArtistList === false) {
+                return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+            }
+            $artistIds = array_map(fn(array $item) => $item['artist_id'], $orderedArtistList);
+
+            try {
+                $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
+                $albumDetails = $helper->getAlbumDetails($platformId);
+
+                $dbConn->beginTransaction();
+
+                $newArtistIds = [];
+                foreach ($albumDetails->artists as $artist) {
+                    $newArtistIds[] = Artist::getOrCreateArtistId($dbConn, $artist);
+                }
+
+                $potentialArtistsToRemove = [];
+                foreach ($artistIds as $artistId) {
+                    if (!in_array($artistId, $newArtistIds)) {
+                        $potentialArtistsToRemove[] = $artistId;
+                    }
+                }
+
+                $artistsToRemove = [];
+                if (!empty($potentialArtistsToRemove)) {
+                    foreach ($potentialArtistsToRemove as $artistId) {
+                        $sql = "SELECT COUNT(*) FROM `album_artists` WHERE `album_id` != ? AND `artist_id` = ?";
+                        $countOtherAlbums = $dbConn->getValue($sql, $albumId, $artistId);
+                        if ($countOtherAlbums === false) {
+                            return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
+                        }
+
+                        if ($countOtherAlbums == 0) {
+                            $artistsToRemove[] = $artistId;
+                        }
+                    }
+                }
+
+                $sql = "DELETE FROM `album_artists` WHERE `album_id` = ?";
+                if (!$dbConn->exec($sql, $albumId)) {
+                    return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
+                }
+
+                if (!empty($artistsToRemove)) {
+                    $inParts = implode(',', array_pad([], count($artistsToRemove), '?'));
+                    $sql = "DELETE FROM `artists` WHERE `id` IN ({$inParts})";
+                    if (!$dbConn->exec($sql, $artistsToRemove)) {
+                        return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
+                    }
+                }
+
+                $inParts = implode(', ', array_pad([], count($newArtistIds), '(?,?,?)'));
+                $sql = "INSERT INTO `album_artists` VALUES {$inParts}";
+                $values = [];
+                $order = 0;
+                foreach ($newArtistIds as $artistId) {
+                    $values[] = $albumId;
+                    $values[] = $artistId;
+                    $values[] = ++$order;
+                }
+                if (!$dbConn->exec($sql, $values)) {
+                    return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
+                }
+
+                $sql = "UPDATE `albums` SET `title` = ? WHERE `id` = ?";
+                if (!$dbConn->exec($sql, $albumDetails->title, $albumId)) {
+                    return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
+                }
+
+                $dbConn->commit();
+            } catch (Exception $e) {
+                $dbConn->rollBack();
+                trigger_error($e->getMessage());
+                return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
+            }
+
+            return RequestResult::buildRedirectRequestResult("/Album/show/{$albumId}");
+        }
+    }
+
     #[Route, RequiredRequestMethod(RequestMethod::GET)]
     public function searchPlatform(): RequestResult
     {

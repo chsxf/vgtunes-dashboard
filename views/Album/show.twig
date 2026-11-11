@@ -38,31 +38,31 @@
 
 					<div class="col-6 text-secondary">
 						{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null and album_details.instances[platform].data_status.value != 'unknown' %}
-							{% with { platform_details: album_details.instances[platform] } %}
-							{% if (is_new == false) %}
-								{% if platform_details.data_status.value == 'new' %}
-									<span class="text-warning">(Preview)</span><br/>
-								{% elseif platform_details.data_status.value == 'removed' %}
-									<span class="text-danger">(To Remove)</span><br/>
+							{% with {platform_details: album_details.instances[platform]} %}
+								{% if (is_new == false) %}
+									{% if platform_details.data_status.value == 'new' %}
+										<span class="text-warning">(Preview)</span><br/>
+									{% elseif platform_details.data_status.value == 'removed' %}
+										<span class="text-danger">(To Remove)</span><br/>
+									{% endif %}
 								{% endif %}
-							{% endif %}
-							{{ platform_details.platform_id }}
-							{% if (is_new == false) %}
-								{% if platform_details.availability == 'not_available' %}
-									<span class="text-danger">(Unavailable)</span>
+								{{ platform_details.platform_id }}
+								{% if (is_new == false) %}
+									{% if platform_details.availability == 'not_available' %}
+										<span class="text-danger">(Unavailable)</span>
+									{% endif %}
 								{% endif %}
-							{% endif %}
-							{% if platform_details.title is defined %}
-								<div class="row">
-									<div class="col-2">
-										<img src="{{ platform_details.cover_url }}" style="width: 100%"/>
+								{% if platform_details.title is defined %}
+									<div class="row">
+										<div class="col-2">
+											<img src="{{ platform_details.cover_url }}" style="width: 100%"/>
+										</div>
+										<div class="col-10">
+											{{ platform_details.title }}
+											<br/>{{ platform_details.artists|join(', ') }}
+										</div>
 									</div>
-									<div class="col-10">
-										{{ platform_details.title }}
-										<br/>{{ platform_details.artists|join(', ') }}
-									</div>
-								</div>
-							{% endif %}
+								{% endif %}
 							{% endwith %}
 						{% else %}
 							-
@@ -101,12 +101,23 @@
 							</div>
 							{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null and (album_details.instances[platform].data_status.value not in ['removed', 'unknown']) %}
 								<div class="col-auto">
+									<form method="post" action="/Album/replaceMetadata" onsubmit="return confirm('Are you sure your want to replace this album\'s metadata with fresh data from this platform?');">
+										<input type="hidden" name="platform" value="{{ platform }}"/>
+										{% if is_new == false %}
+											<input type="hidden" name="album_id" value="{{ album_details.id }}"/>
+										{% endif %}
+										<button class="btn btn-sm btn-outline-warning" title="Replace Metadata">
+											<i class="bi bi-recycle"></i>
+										</button>
+									</form>
+								</div>
+								<div class="col-auto">
 									<a href="{{ album_details.instances[platform].url }}" class="btn btn-sm btn-outline-success" target="_blank" title="Look Up">
 										<i class="bi bi-box-arrow-right"></i>
 									</a>
 								</div>
 								<div class="col-auto">
-									<form method="post" action="/Album/removePlatform" onsubmit="return confirm('are you sure your want to remove it?');">
+									<form method="post" action="/Album/removePlatform" onsubmit="return confirm('Are you sure your want to remove this album instance?');">
 										<input type="hidden" name="platform" value="{{ platform }}"/>
 										{% if is_new == false %}
 											<input type="hidden" name="album_id" value="{{ album_details.id }}"/>
@@ -133,7 +144,7 @@
 				<div class="row">
 					<div class="col-1 text-end">Analytics</div>
 					<div class="col-11">
-						{{ include('timeFrameSelector.twig', { action: '/Album/show/%d'|format(album_details.id), 'validator': analytics.validator }, with_context = false )}}
+						{{ include('timeFrameSelector.twig', {action: '/Album/show/%d'|format(album_details.id), 'validator': analytics.validator}, with_context = false) }}
 
 						<div class="spinner-border mt-3" role="status" id="graph-spinner">
 							<span class="visually-hidden">Loading...</span>
