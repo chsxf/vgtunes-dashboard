@@ -546,6 +546,13 @@ final class Album extends BaseRouteProvider
 
         $bulkSelectionData = json_decode($validator[self::BULK_SELECTION_FIELD]);
 
+        $sortableBulkSelectionData = array_map(function ($item) {
+            parse_str($item, $output);
+            return $output;
+        }, $bulkSelectionData);
+        usort($sortableBulkSelectionData, fn($itemA, $itemB) => strcmp($itemA['title'], $itemB['title']));
+        $bulkSelectionData = array_map(fn($item) => http_build_query($item), $sortableBulkSelectionData);
+
         $sessionService = $this->serviceProvider->getSessionService();
         $sessionService->setInSession([
             self::SESS_BULK_SELECTION => $bulkSelectionData
