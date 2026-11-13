@@ -48,7 +48,7 @@ final class AppleMusicHelper extends AbstractPlatformHelper
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => ["Authorization: Bearer {$jsonWebToken}"],
-            CURLOPT_SSL_VERIFYHOST => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_SSL_VERIFYPEER => true
         ]);
         $result = curl_exec($ch);
