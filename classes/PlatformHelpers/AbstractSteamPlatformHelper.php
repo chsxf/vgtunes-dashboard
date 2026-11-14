@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PlatformHelpers;
 
 use chsxf\MFX\Services\IDatabaseService;
@@ -53,10 +55,10 @@ abstract class AbstractSteamPlatformHelper extends AbstractPlatformHelper
         $queryWords = self::splitWords($query);
         foreach ($dbResults as $dbResult) {
             $id = $dbResult['app_id'];
-            $imgUrl = $this->getCoverUrl($id, time());
+            $imgUrl = $this->getCoverUrl(strval($id), time());
 
             $results[] = [
-                new PlatformAlbum($dbResult['name'], $id, ['n/a'], $imgUrl),
+                new PlatformAlbum($dbResult['name'], strval($id), ['n/a'], $imgUrl),
                 self::computeDistance($dbResult['name'], $queryWords, $queryLength)
             ];
         }

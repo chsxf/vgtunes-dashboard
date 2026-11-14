@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomatedActions;
 
 use chsxf\MFX\DataValidator;
@@ -173,7 +175,7 @@ class SteamProductsUpdater extends AbstractAutomatedAction
         }
 
         try {
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+            $decodedJson = json_decode($result, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
         } catch (JsonException $e) {
             throw new PlatformHelperException('An error has occuped while parsing search results.', previous: $e);
         }

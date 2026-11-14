@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Analytics\TimeFrame;
 use chsxf\MFX\Attributes\PreRouteCallback;
 use chsxf\MFX\Attributes\RequiredRequestMethod;

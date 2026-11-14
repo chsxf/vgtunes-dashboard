@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use AutomatedActions\AbstractAutomatedAction;
 use AutomatedActions\AutomatedActionStatus;
 use AutomatedActions\BandcampDatabaseUpdater;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use chsxf\MFX\RequestResult;
 use chsxf\MFX\Routers\RouterData;
 use chsxf\MFX\Services\ICoreServiceProvider;

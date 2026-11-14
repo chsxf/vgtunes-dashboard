@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PlatformHelpers;
 
 use chsxf\MFX\HttpStatusCodes;
@@ -50,7 +52,7 @@ final class SpotifyHelper extends AbstractAuthPlatformHelper
         }
 
         try {
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+            $decodedJson = json_decode($result, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
         } catch (JsonException $e) {
             throw new PlatformHelperException('An error has occured while parsing search results.', previous: $e);
         }
@@ -129,7 +131,7 @@ final class SpotifyHelper extends AbstractAuthPlatformHelper
         }
 
         try {
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+            $decodedJson = json_decode($result, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
         } catch (JsonException $e) {
             throw new PlatformHelperException('Unable to parse token result', previous: $e);
         }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomatedActions;
 
 use chsxf\MFX\DataValidator\Field;

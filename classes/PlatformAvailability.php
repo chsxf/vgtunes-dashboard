@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 enum PlatformAvailability: string
 {
     case Unknown = 'unknown';
