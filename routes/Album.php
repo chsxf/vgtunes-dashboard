@@ -6,9 +6,7 @@ use Analytics\TimeFrame;
 use chsxf\MFX\Attributes\PreRouteCallback;
 use chsxf\MFX\Attributes\RequiredRequestMethod;
 use chsxf\MFX\Attributes\Route;
-use chsxf\MFX\DatabaseConnectionInstance;
 use chsxf\MFX\DataValidator;
-use chsxf\MFX\DataValidator\Fields\WithOptions;
 use chsxf\MFX\DataValidator\FieldType;
 use chsxf\MFX\DataValidator\Filters\ExistsInDB;
 use chsxf\MFX\DataValidator\Filters\In;
@@ -17,38 +15,14 @@ use chsxf\MFX\HttpStatusCodes;
 use chsxf\MFX\RequestMethod;
 use chsxf\MFX\RequestResult;
 use chsxf\MFX\Routers\BaseRouteProvider;
-use chsxf\MFX\Services\IConfigService;
 use chsxf\MFX\StringTools;
 use PlatformHelpers\PlatformHelperFactory;
 use PlatformHelpers\SteamGamePlatformHelper;
+use RouteHelpers\AlbumRouteHelpers;
 
 final class Album extends BaseRouteProvider
 {
-    public const string SESS_ALBUM_DATA = 'album-data';
-    public const string SESS_BULK_SELECTION = 'bulk-selection';
-
-    private const string FUNCTION = 'function';
-    private const string DATA_STATUS = 'data_status';
-    private const string NEW_DATA = 'new_data';
-    private const string ALBUM_ID = 'album_id';
-
-    private const string QUERY_FIELD = 'q';
-    private const string PLATFORM_FIELD = 'platform';
-    private const string CALLBACK_FIELD = 'callback';
-    private const string TITLE_PREFIX_FIELD = 'title_prefix';
-    private const string TITLE_FIELD = 'title';
-    private const string ARTISTS_FIELD = 'artists';
-    private const string COVER_URL_FIELD = 'cover_url';
-    private const string INSTANCES_FIELD = 'instances';
-    private const string PLATFORM_ID_FIELD = 'platform_id';
-    private const string BACK_URL_FIELD = 'back_url';
-    private const string START_AT_FIELD = 'start_at';
-    private const string AVAILABILITY_FIELD = 'availability';
-    private const string BULK_SELECTION_FIELD = 'bulk_selection';
-
-    private const string ALLOW_BULK_SELECTION = 'allow_bulk_selection';
-    private const string CONTINUE_WITH_BULK_SELECTION = 'continue_with_bulk_selection';
-    private const string PREVIOUS_SEARCHES = 'previous_searches';
+    use AlbumRouteHelpers;
 
     private const array SEARCH_QUERY_PARAMS_ADD = [
         self::CALLBACK_FIELD => '/Album/add',
@@ -97,17 +71,9 @@ final class Album extends BaseRouteProvider
 
             $decodedArtists = json_decode($validator[self::ARTISTS_FIELD]);
 
-            if (isset($sessionService[self::SESS_ALBUM_DATA]) && $sessionService[self::SESS_ALBUM_DATA][self::FUNCTION] == __FUNCTION__) {
+            if (isset($sessionService[self::SESS_ALBUM_DATA][self::FUNCTION]) && $sessionService[self::SESS_ALBUM_DATA][self::FUNCTION] == __FUNCTION__) {
                 $sessionAlbumData = $sessionService[self::SESS_ALBUM_DATA];
-                $sessionAlbumData[self::INSTANCES_FIELD][$validator[self::PLATFORM_FIELD]] = [
-                    self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
-                    self::TITLE_FIELD => $validator[self::TITLE_FIELD],
-                    self::ARTISTS_FIELD => $decodedArtists,
-                    self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                    self::DATA_STATUS => AlbumDataStatus::new,
-                    self::AVAILABILITY_FIELD => PlatformAvailability::Available
-                ];
-
+                $sessionAlbumData[self::INSTANCES_FIELD][$validator[self::PLATFORM_FIELD]] = self::createInstanceEntry($validator, $decodedArtists);
                 if ($validator[self::PLATFORM_FIELD] == Platform::deezer->value) {
                     $sessionAlbumData[self::COVER_URL_FIELD] = $validator[self::COVER_URL_FIELD];
                 }
@@ -132,14 +98,7 @@ final class Album extends BaseRouteProvider
                     self::ARTISTS_FIELD => $artists,
                     self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
                     self::INSTANCES_FIELD => [
-                        $validator[self::PLATFORM_FIELD] => [
-                            self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
-                            self::TITLE_FIELD => $title,
-                            self::ARTISTS_FIELD => $artists,
-                            self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                            self::DATA_STATUS => AlbumDataStatus::new,
-                            self::AVAILABILITY_FIELD => PlatformAvailability::Available
-                        ]
+                        $validator[self::PLATFORM_FIELD] => self::createInstanceEntry($validator, $decodedArtists, overrides: [self::TITLE_FIELD => $title])
                     ]
                 ];
 
@@ -181,11 +140,14 @@ final class Album extends BaseRouteProvider
         $dbService = $this->serviceProvider->getDatabaseService();
         $dbConn = $dbService->open();
 
-        if (empty($params)) {
+        $queryValidator = new DataValidator();
+        $queryValidator->createField('0', FieldType::POSITIVE_INTEGER)
+            ->addFilter(new ExistsInDB('albums', 'id', $dbConn));
+        if (!$queryValidator->validate($params)) {
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
         }
 
-        $albumId = intval($params[0]);
+        $albumId = intval($queryValidator['0']);
         try {
             self::getSavedAlbumDetails($dbConn, $this->serviceProvider->getConfigService(), $albumId);
         } catch (Exception) {
@@ -206,27 +168,13 @@ final class Album extends BaseRouteProvider
             && $sessionService[self::SESS_ALBUM_DATA][self::ALBUM_ID] == $albumId
         ) {
             $sessionAlbumData = $sessionService[self::SESS_ALBUM_DATA];
-            $sessionAlbumData[self::INSTANCES_FIELD][$validator[self::PLATFORM_FIELD]] = [
-                self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
-                self::TITLE_FIELD => $validator[self::TITLE_FIELD],
-                self::ARTISTS_FIELD => $decodedArtists,
-                self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                self::DATA_STATUS => AlbumDataStatus::new,
-                self::AVAILABILITY_FIELD => PlatformAvailability::Available
-            ];
+            $sessionAlbumData[self::INSTANCES_FIELD][$validator[self::PLATFORM_FIELD]] = self::createInstanceEntry($validator, $decodedArtists);
         } else {
             $sessionAlbumData = [
                 self::FUNCTION => __FUNCTION__,
                 self::ALBUM_ID => $albumId,
                 self::INSTANCES_FIELD => [
-                    $validator[self::PLATFORM_FIELD] => [
-                        self::PLATFORM_ID_FIELD => $validator[self::PLATFORM_ID_FIELD],
-                        self::TITLE_FIELD => $validator[self::TITLE_FIELD],
-                        self::ARTISTS_FIELD => $decodedArtists,
-                        self::COVER_URL_FIELD => $validator[self::COVER_URL_FIELD],
-                        self::DATA_STATUS => AlbumDataStatus::new,
-                        self::AVAILABILITY_FIELD => PlatformAvailability::Available
-                    ]
+                    $validator[self::PLATFORM_FIELD] => self::createInstanceEntry($validator, $decodedArtists)
                 ]
             ];
         }
@@ -316,9 +264,10 @@ final class Album extends BaseRouteProvider
                 return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
             }
 
-            $sessionAlbumData[self::TITLE_FIELD] = $albumDetails->title;
-            $sessionAlbumData[self::ARTISTS_FIELD] = $albumDetails->artists;
-            $sessionService[self::SESS_ALBUM_DATA] = $sessionAlbumData;
+            $sessionService[self::SESS_ALBUM_DATA] = [
+                self::TITLE_FIELD => $albumDetails->title,
+                self::ARTISTS_FIELD => $albumDetails->artists
+            ] + $sessionAlbumData;
 
             return RequestResult::buildRedirectRequestResult("/Album/show");
         } else {
@@ -418,30 +367,12 @@ final class Album extends BaseRouteProvider
             $scripts->add("js/platform-bulk-selection.js", defer: true);
         }
 
-        $validator = new DataValidator();
-        $validator->createField(self::CALLBACK_FIELD, FieldType::TEXT, required: false);
-        $validator->createField(self::BACK_URL_FIELD, FieldType::TEXT, required: false);
-        $validator->createField(self::START_AT_FIELD, FieldType::POSITIVEZERO_INTEGER, defaultValue: 0, required: false);
-        $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::TEXT, required: false);
-        $validator->createField(self::QUERY_FIELD, FieldType::TEXT, '', extras: ['class' => 'form-control']);
-        $validator->createField(self::ALLOW_BULK_SELECTION, FieldType::TEXT, required: false);
-        $f = $validator->createField(self::PLATFORM_FIELD, FieldType::SELECT, Platform::deezer->value, required: false, extras: ['class' => 'form-select']);
-        if ($f instanceof WithOptions) {
-            $f->addOptions(Platform::PLATFORMS);
-        }
-
-        $previousSearches = [];
-        if (!empty($_COOKIE[self::PREVIOUS_SEARCHES])) {
-            try {
-                $previousSearches = json_decode($_COOKIE[self::PREVIOUS_SEARCHES], flags: JSON_OBJECT_AS_ARRAY | JSON_THROW_ON_ERROR);
-            } finally {
-            }
-        }
-
+        $previousSearches = json_decode($_COOKIE[self::PREVIOUS_SEARCHES] ?? '[]', true) ?? [];
         $nextPageStartAt = null;
 
         $searchResults = null;
         $hasQuery = !empty(trim($_GET[self::QUERY_FIELD] ?? ''));
+        $validator = self::createSearchPageValidator(null, 0);
         if ($validator->validate($_GET, silent: !$hasQuery)) {
             if ($hasQuery) {
                 $searchQuery = $validator[self::QUERY_FIELD];
@@ -525,7 +456,7 @@ final class Album extends BaseRouteProvider
             $requestData['bulk_selection_validator'] = self::createBulkSelectionValidator();
         }
         if ($nextPageStartAt !== null) {
-            $requestData['next_page_validator'] = self::createOtherSearchPageValidator($validator, $nextPageStartAt);
+            $requestData['next_page_validator'] = self::createSearchPageValidator($validator, $nextPageStartAt);
         }
         if (!empty($_REQUEST[self::BACK_URL_FIELD])) {
             $requestData[self::BACK_URL_FIELD] = $_REQUEST[self::BACK_URL_FIELD];
@@ -560,87 +491,6 @@ final class Album extends BaseRouteProvider
 
         $redirectUrl = sprintf("/Album/add?%s=1", self::CONTINUE_WITH_BULK_SELECTION);
         return RequestResult::buildRedirectRequestResult($redirectUrl);
-    }
-
-    private static function createSearchResultValidator(?string $platform = null): DataValidator
-    {
-        $validator = new DataValidator();
-        $validator->createField(self::PLATFORM_FIELD, FieldType::TEXT, $platform)
-            ->addFilter(new In(array_keys(Platform::PLATFORMS)));
-        $validator->createField(self::TITLE_FIELD, FieldType::TEXT);
-        $validator->createField(self::ARTISTS_FIELD, FieldType::TEXT);
-        $validator->createField(self::COVER_URL_FIELD, FieldType::TEXT, required: false);
-        $validator->createField(self::PLATFORM_ID_FIELD, FieldType::TEXT);
-        return $validator;
-    }
-
-    private static function createPreviousSearchValidator(DataValidator $sourceValidator, string $query): DataValidator
-    {
-        $validator = new DataValidator();
-        $validator->createField(self::PLATFORM_FIELD, FieldType::TEXT, $sourceValidator[self::PLATFORM_FIELD] ?? Platform::deezer->value);
-        $validator->createField(self::CALLBACK_FIELD, FieldType::TEXT, $sourceValidator[self::CALLBACK_FIELD], required: false);
-        $validator->createField(self::BACK_URL_FIELD, FieldType::TEXT, $sourceValidator[self::BACK_URL_FIELD], required: false);
-        $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::TEXT, $sourceValidator[self::TITLE_PREFIX_FIELD], required: false);
-        $validator->createField(self::ALLOW_BULK_SELECTION, FieldType::TEXT, $sourceValidator[self::ALLOW_BULK_SELECTION], required: false);
-        $validator->createField(self::QUERY_FIELD, FieldType::TEXT, $query);
-        return $validator;
-    }
-
-    private static function createOtherSearchPageValidator(DataValidator $sourceValidator, int $startAt): DataValidator
-    {
-        $validator = new DataValidator();
-        $validator->createField(self::PLATFORM_FIELD, FieldType::TEXT, $sourceValidator[self::PLATFORM_FIELD] ?? Platform::deezer->value);
-        $validator->createField(self::CALLBACK_FIELD, FieldType::TEXT, $sourceValidator[self::CALLBACK_FIELD], required: false);
-        $validator->createField(self::BACK_URL_FIELD, FieldType::TEXT, $sourceValidator[self::BACK_URL_FIELD], required: false);
-        $validator->createField(self::START_AT_FIELD, FieldType::POSITIVEZERO_INTEGER, $startAt, required: false);
-        $validator->createField(self::TITLE_PREFIX_FIELD, FieldType::TEXT, $sourceValidator[self::TITLE_PREFIX_FIELD], required: false);
-        $validator->createField(self::ALLOW_BULK_SELECTION, FieldType::TEXT, $sourceValidator[self::ALLOW_BULK_SELECTION], required: false);
-        $validator->createField(self::QUERY_FIELD, FieldType::TEXT, $sourceValidator[self::QUERY_FIELD]);
-        return $validator;
-    }
-
-    private static function createBulkSelectionValidator(): DataValidator
-    {
-        $validator = new DataValidator();
-        $validator->createField(self::BULK_SELECTION_FIELD, FieldType::TEXT, required: true);
-        return $validator;
-    }
-
-    private static function getSavedAlbumDetails(DatabaseConnectionInstance $dbConn, IConfigService $configService, int $albumId): array
-    {
-        $sql = "SELECT * FROM `albums` WHERE `id` = ?";
-        if (($albumRow = $dbConn->getRow($sql, \PDO::FETCH_ASSOC, $albumId)) === false) {
-            throw new Exception('An error has occured while querying album details', E_USER_ERROR);
-        }
-
-        $sql = "SELECT `platform`, `platform_id`, `availability` FROM `album_instances` WHERE `album_id` = ?";
-        if (($instances = $dbConn->getIndexed($sql, self::PLATFORM_FIELD, \PDO::FETCH_ASSOC, $albumId)) === false) {
-            throw new Exception("An error has occured while querying album's instances", E_USER_ERROR);
-        }
-
-        $sql = "SELECT `ar`.`name`
-                    FROM `album_artists` AS `aa`
-                    LEFT JOIN `artists` AS `ar`
-                        ON `aa`.`artist_id` = `ar`.`id`
-                    WHERE `aa`.`album_id` = ?";
-        if (($artists = $dbConn->getColumn($sql, $albumId)) === false) {
-            throw new Exception("An error has occured while querying album's artists", E_USER_ERROR);
-        }
-
-        $albumDetails = $albumRow;
-        $albumDetails[self::COVER_URL_FIELD] = sprintf("%s%s/cover_500.webp", $configService->getValue('covers.base_url'), $albumRow['slug']);
-        $albumDetails[self::ARTISTS_FIELD] = $artists;
-        $albumDetails[self::INSTANCES_FIELD] = array_map(fn($instance) => array_merge($instance, [self::DATA_STATUS => AlbumDataStatus::saved]), $instances);
-        return $albumDetails;
-    }
-
-    private static function createEditSearchQueryParams(int $albumId): array
-    {
-        return [
-            self::CALLBACK_FIELD => "/Album/edit/{$albumId}",
-            self::TITLE_PREFIX_FIELD => 'Edit Album',
-            self::BACK_URL_FIELD => "/Album/show/{$albumId}"
-        ];
     }
 
     #[Route, RequiredRequestMethod(RequestMethod::GET), PreRouteCallback('GlobalCallbacks::googleChartsPreRouteCallback')]
