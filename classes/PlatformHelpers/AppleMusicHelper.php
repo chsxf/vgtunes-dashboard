@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PlatformHelpers;
 
 use chsxf\MFX\HttpStatusCodes;
@@ -60,7 +62,7 @@ final class AppleMusicHelper extends AbstractPlatformHelper
         }
 
         try {
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+            $decodedJson = json_decode($result, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
         } catch (JsonException $e) {
             throw new PlatformHelperException('An error has occured while parsing search results.', rawData: $result, previous: $e);
         }
@@ -94,7 +96,7 @@ final class AppleMusicHelper extends AbstractPlatformHelper
                 $albumAttributes = $album['attributes'];
 
                 $coverUrl = $albumAttributes['artwork']['url'];
-                $coverUrl = str_replace(['{w}', '{h}'], 1000, $coverUrl);
+                $coverUrl = str_replace(['{w}', '{h}'], '1000', $coverUrl);
 
                 $entry = new PlatformAlbum($albumAttributes['name'], $album['id'], [$albumAttributes['artistName']], $coverUrl);
                 $entry->numberOfTracks = $albumAttributes['trackCount'];

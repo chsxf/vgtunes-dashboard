@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PlatformHelpers;
 
 use JsonException;
@@ -69,7 +71,7 @@ final class DeezerPlatformHelper extends AbstractPlatformHelper
 
         $entries = [];
         foreach ($decodedSearchResults['data'] as $entry) {
-            $album = new PlatformAlbum($entry['title'], $entry['id'], [$entry['artist']['name']], $entry['cover_xl']);
+            $album = new PlatformAlbum($entry['title'], strval($entry['id']), [$entry['artist']['name']], $entry['cover_xl']);
             $album->numberOfTracks = $entry['nb_tracks'];
             $entries[] = $album;
         }

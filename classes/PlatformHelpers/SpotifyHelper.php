@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PlatformHelpers;
 
 use chsxf\MFX\HttpStatusCodes;
@@ -50,7 +52,7 @@ final class SpotifyHelper extends AbstractAuthPlatformHelper
         }
 
         try {
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+            $decodedJson = json_decode($result, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
         } catch (JsonException $e) {
             throw new PlatformHelperException('An error has occured while parsing search results.', previous: $e);
         }
@@ -70,7 +72,7 @@ final class SpotifyHelper extends AbstractAuthPlatformHelper
         $decodedJson = $this->queryAPI(self::API_SEARCH_URL, $queryParams);
 
         if (array_key_exists('next', $decodedJson['albums'])) {
-            $queryParams = parse_url($decodedJson['albums']['next'], PHP_URL_QUERY);
+            $queryParams = parse_url($decodedJson['albums']['next'] ?? '', PHP_URL_QUERY);
             if (!empty($queryParams)) {
                 parse_str($queryParams, $parsedQueryParams);
                 if (array_key_exists('offset', $parsedQueryParams) && ctype_digit($parsedQueryParams['offset'])) {
@@ -129,7 +131,7 @@ final class SpotifyHelper extends AbstractAuthPlatformHelper
         }
 
         try {
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+            $decodedJson = json_decode($result, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
         } catch (JsonException $e) {
             throw new PlatformHelperException('Unable to parse token result', previous: $e);
         }

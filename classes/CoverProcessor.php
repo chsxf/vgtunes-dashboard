@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 final class CoverProcessor
 {
     public static function getProcessedCovers(string $coverUrl): array

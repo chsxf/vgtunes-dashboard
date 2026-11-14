@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PlatformHelpers;
 
 use chsxf\MFX\HttpStatusCodes;
@@ -33,10 +35,10 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
         foreach ($params as $k => $v) {
             if (is_array($v)) {
                 foreach ($v as $vi) {
-                    $queryMembers[] = sprintf("%s=%s", rawurlencode($k), rawurlencode($vi));
+                    $queryMembers[] = sprintf("%s=%s", rawurlencode($k), rawurlencode(strval($vi)));
                 }
             } else {
-                $queryMembers[] = sprintf("%s=%s", rawurlencode($k), rawurlencode($v));
+                $queryMembers[] = sprintf("%s=%s", rawurlencode($k), rawurlencode(strval($v)));
             }
         }
         return implode('&', $queryMembers);
@@ -62,7 +64,7 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
         }
 
         try {
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+            $decodedJson = json_decode($result, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
         } catch (JsonException $e) {
             throw new PlatformHelperException('An error has occured while parsing search results.', previous: $e);
         }
@@ -126,7 +128,7 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
             }
 
             $partialDetails = $results[$albumId][0];
-            $entry             = new PlatformAlbum($partialDetails['title'], $albumId, $artists, $coverUrl);
+            $entry = new PlatformAlbum($partialDetails['title'], $albumId, $artists, $coverUrl);
             $entry->numberOfTracks = $partialDetails['numberOfTracks'];
             $results[$albumId][0] = $entry;
         }
@@ -214,7 +216,7 @@ final class TidalPlatformHelper extends AbstractAuthPlatformHelper
         }
 
         try {
-            $decodedJson = json_decode($result, JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+            $decodedJson = json_decode($result, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
         } catch (JsonException $e) {
             throw new PlatformHelperException('Unable to parse token result', previous: $e);
         }

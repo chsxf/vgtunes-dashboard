@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use chsxf\MFX\Attributes\RequiredRequestMethod;
 use chsxf\MFX\Attributes\Route;
 use chsxf\MFX\DatabaseConnectionInstance;
