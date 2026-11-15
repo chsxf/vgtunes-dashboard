@@ -26,9 +26,10 @@ final class GlobalCallbacks
                 return !$enabled;
             }));
 
-            if (!empty($_SESSION[Album::SESS_BULK_SELECTION]) && is_array($_SESSION[Album::SESS_BULK_SELECTION])) {
-                $twig->addGlobal('remaining_bulk_selection', count($_SESSION[Album::SESS_BULK_SELECTION]));
-                if ($routerData->route == 'Album/show' && !empty($_SESSION[Album::SESS_ALBUM_DATA])) {
+            $sessionService = $coreServiceProvider->getSessionService();
+            if (!empty($sessionService[Album::SESS_BULK_SELECTION][Album::BULK_SELECTION_DATA]) && is_array($sessionService[Album::SESS_BULK_SELECTION][Album::BULK_SELECTION_DATA])) {
+                $twig->addGlobal('remaining_bulk_selection', count($sessionService[Album::SESS_BULK_SELECTION][Album::BULK_SELECTION_DATA]));
+                if ($routerData->route == 'Album/show' && !empty($sessionService[Album::SESS_ALBUM_DATA])) {
                     $twig->addGlobal('disable_bulk_selection_link', true);
                 }
             }

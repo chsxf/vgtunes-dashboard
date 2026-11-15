@@ -24,7 +24,7 @@ trait AlbumRouteHelpers
     private const string FUNCTION = 'function';
     private const string DATA_STATUS = 'data_status';
     private const string NEW_DATA = 'new_data';
-    private const string BULK_SELECTION_DATA = 'bulk_selection_data';
+    public const string BULK_SELECTION_DATA = 'bulk_selection_data';
     private const string BULK_PINS = 'bulk_pins';
     private const string ALBUM_ID = 'album_id';
 
