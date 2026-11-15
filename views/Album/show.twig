@@ -36,6 +36,26 @@
 						{{ platform_name }}
 					</div>
 
+					{% if remaining_bulk_selection is defined %}
+						<div class="col-auto">
+							{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null and album_details.instances[platform].data_status.value != 'unknown' %}
+								{% if platform in platform_pins %}
+									<a href="/Album/unpin?platform={{ platform|e('url') }}" class="btn btn-sm btn-info" title="Unpin for bulk addition">
+										<i class="bi bi-pin-angle"></i>
+									</a>
+								{% else %}
+									<a href="/Album/pin?platform={{ platform|e('url') }}&platform_id={{ album_details.instances[platform].platform_id|e('url') }}" class="btn btn-sm btn-outline-info" title="Pin for bulk addition">
+										<i class="bi bi-pin-angle"></i>
+									</a>
+								{% endif %}
+							{% else %}
+								<a href="#" class="btn btn-sm btn-outline-secondary disabled" title="Pin for bulk addition">
+									<i class="bi bi-pin-angle"></i>
+								</a>
+							{% endif %}
+						</div>
+					{% endif %}
+
 					<div class="col-6 text-secondary">
 						{% if album_details.instances[platform] is defined and album_details.instances[platform] is not null and album_details.instances[platform].data_status.value != 'unknown' %}
 							{% with {platform_details: album_details.instances[platform]} %}

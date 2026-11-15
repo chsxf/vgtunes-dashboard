@@ -9,6 +9,7 @@ use chsxf\MFX\DatabaseConnectionInstance;
 use chsxf\MFX\DataValidator;
 use chsxf\MFX\DataValidator\Fields\WithOptions;
 use chsxf\MFX\DataValidator\FieldType;
+use chsxf\MFX\DataValidator\Filters\ExistsInDB;
 use chsxf\MFX\DataValidator\Filters\In;
 use chsxf\MFX\Services\IConfigService;
 use Exception;
@@ -23,6 +24,8 @@ trait AlbumRouteHelpers
     private const string FUNCTION = 'function';
     private const string DATA_STATUS = 'data_status';
     private const string NEW_DATA = 'new_data';
+    private const string BULK_SELECTION_DATA = 'bulk_selection_data';
+    private const string BULK_PINS = 'bulk_pins';
     private const string ALBUM_ID = 'album_id';
 
     private const string QUERY_FIELD = 'q';
@@ -53,6 +56,14 @@ trait AlbumRouteHelpers
             self::DATA_STATUS => AlbumDataStatus::new,
             self::AVAILABILITY_FIELD => PlatformAvailability::Available
         ];
+    }
+
+    private static function createQueryValidator(DatabaseConnectionInstance $dbConn): DataValidator
+    {
+        $validator = new DataValidator();
+        $validator->createField('0', FieldType::POSITIVE_INTEGER)
+            ->addFilter(new ExistsInDB('albums', 'id', $dbConn));
+        return $validator;
     }
 
     private static function createSearchPageValidator(?DataValidator $sourceValidator, int $startAt): DataValidator
@@ -99,6 +110,17 @@ trait AlbumRouteHelpers
     {
         $validator = new DataValidator();
         $validator->createField(self::BULK_SELECTION_FIELD, FieldType::TEXT, required: true);
+        return $validator;
+    }
+
+    private static function createBulkPinValidator(bool $requiredPlatformId): DataValidator
+    {
+        $validator = new DataValidator();
+        $f = $validator->createField(self::PLATFORM_FIELD, FieldType::SELECT);
+        if ($f instanceof WithOptions) {
+            $f->addOptions(Platform::PLATFORMS);
+        }
+        $validator->createField(self::PLATFORM_ID_FIELD, FieldType::TEXT, required: $requiredPlatformId);
         return $validator;
     }
 

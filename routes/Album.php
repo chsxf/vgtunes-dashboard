@@ -48,20 +48,22 @@ final class Album extends BaseRouteProvider
         }
 
         if ($isPost || !empty($_GET[self::CONTINUE_WITH_BULK_SELECTION])) {
+            $platformPins = [];
             if ($isPost) {
                 $additionData = $_POST;
             } else {
-                if (empty($_SESSION[self::SESS_BULK_SELECTION])) {
+                if (empty($sessionService[self::SESS_BULK_SELECTION])) {
                     return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
                 }
-                if (!is_array($_SESSION[self::SESS_BULK_SELECTION])) {
+                if (empty($sessionService[self::SESS_BULK_SELECTION][self::BULK_SELECTION_DATA]) || !is_array($sessionService[self::SESS_BULK_SELECTION][self::BULK_SELECTION_DATA])) {
                     return RequestResult::buildStatusRequestResult(HttpStatusCodes::internalServerError);
                 }
 
-                $bulkData = $_SESSION[self::SESS_BULK_SELECTION];
+                $bulkData = $sessionService[self::SESS_BULK_SELECTION];
+                $platformPins = $bulkData[self::BULK_PINS] ?? [];
 
                 $additionData = [];
-                parse_str($bulkData[0], $additionData);
+                parse_str($bulkData[self::BULK_SELECTION_DATA][0], $additionData);
             }
 
             $validator = self::createSearchResultValidator();
@@ -113,13 +115,20 @@ final class Album extends BaseRouteProvider
             foreach (Platform::PLATFORMS as $platformCase => $_) {
                 $platform = Platform::from($platformCase);
                 if (!array_key_exists($platform->value, $sessionAlbumData[self::INSTANCES_FIELD])) {
-                    $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
-                    if (!empty($helper->autoSearchEnabled)) {
-                        if (($exactMatch = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTISTS_FIELD])) !== null) {
-                            $exactMatch[self::DATA_STATUS] = AlbumDataStatus::new;
-                            $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = $exactMatch;
-                        } else {
-                            $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = [self::DATA_STATUS => AlbumDataStatus::unknown];
+                    if (array_key_exists($platform->value, $platformPins)) {
+                        $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = [
+                            self::PLATFORM_ID_FIELD => $platformPins[$platform->value],
+                            self::DATA_STATUS => AlbumDataStatus::new
+                        ];
+                    } else {
+                        $helper = PlatformHelperFactory::get($platform, $this->serviceProvider);
+                        if (!empty($helper->autoSearchEnabled)) {
+                            if (($exactMatch = $helper->searchExactMatch($sessionAlbumData[self::TITLE_FIELD], $sessionAlbumData[self::ARTISTS_FIELD])) !== null) {
+                                $exactMatch[self::DATA_STATUS] = AlbumDataStatus::new;
+                                $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = $exactMatch;
+                            } else {
+                                $sessionAlbumData[self::INSTANCES_FIELD][$platform->value] = [self::DATA_STATUS => AlbumDataStatus::unknown];
+                            }
                         }
                     }
                 }
@@ -140,9 +149,7 @@ final class Album extends BaseRouteProvider
         $dbService = $this->serviceProvider->getDatabaseService();
         $dbConn = $dbService->open();
 
-        $queryValidator = new DataValidator();
-        $queryValidator->createField('0', FieldType::POSITIVE_INTEGER)
-            ->addFilter(new ExistsInDB('albums', 'id', $dbConn));
+        $queryValidator = self::createQueryValidator($dbConn);
         if (!$queryValidator->validate($params)) {
             return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
         }
@@ -202,7 +209,17 @@ final class Album extends BaseRouteProvider
         }
 
         $albumId = $validator->getFieldValue(self::ALBUM_ID, true);
+        $platform = $validator[self::PLATFORM_FIELD];
         $isNew = empty($albumId);
+
+        $sessionService = $this->serviceProvider->getSessionService();
+        if (isset($sessionService[self::SESS_BULK_SELECTION][self::BULK_PINS][$platform])) {
+            $bulkData = $sessionService[self::SESS_BULK_SELECTION];
+            $bulkPins = $bulkData[self::BULK_PINS];
+            unset($bulkPins[$platform]);
+            $bulkData[self::BULK_PINS] = $bulkPins;
+            $sessionService[self::SESS_BULK_SELECTION] = $bulkData;
+        }
 
         if ($isNew) {
             $sessionService = $this->serviceProvider->getSessionService();
@@ -217,7 +234,7 @@ final class Album extends BaseRouteProvider
             return RequestResult::buildRedirectRequestResult('/Album/show');
         } else {
             $sql = "DELETE FROM `album_instances` WHERE `album_id` = ? AND `platform` = ?";
-            if ($dbConn->exec($sql, $albumId, $validator[self::PLATFORM_FIELD]) === false) {
+            if ($dbConn->exec($sql, $albumId, $platform) === false) {
                 return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
             }
             return RequestResult::buildRedirectRequestResult("/Album/show/{$albumId}");
@@ -480,7 +497,10 @@ final class Album extends BaseRouteProvider
 
         $sessionService = $this->serviceProvider->getSessionService();
         $sessionService->setInSession([
-            self::SESS_BULK_SELECTION => $bulkSelectionData
+            self::SESS_BULK_SELECTION => [
+                self::BULK_SELECTION_DATA => $bulkSelectionData,
+                self::BULK_PINS => []
+            ]
         ]);
 
         $redirectUrl = sprintf("/Album/add?%s=1", self::CONTINUE_WITH_BULK_SELECTION);
@@ -491,6 +511,7 @@ final class Album extends BaseRouteProvider
     public function show(array $params): RequestResult
     {
         $sessionService = $this->serviceProvider->getSessionService();
+        $configService = $this->serviceProvider->getConfigService();
 
         $scripts = $this->serviceProvider->getScriptService();
         $scripts->add('js/album-manual-edit.js');
@@ -506,7 +527,7 @@ final class Album extends BaseRouteProvider
             $dbConn = $dbService->open();
 
             try {
-                $albumDetails = self::getSavedAlbumDetails($dbConn, $this->serviceProvider->getConfigService(), $albumId);
+                $albumDetails = self::getSavedAlbumDetails($dbConn, $configService, $albumId);
             } catch (Exception) {
             }
         }
@@ -540,11 +561,12 @@ final class Album extends BaseRouteProvider
             'sanitized_title' => PlatformAlbum::cleanupAlbumTitle($albumDetails['title']),
             'platforms' => Platform::PLATFORMS,
             'search_query_params' => $isSavedAlbum ? self::createEditSearchQueryParams($albumId) : self::SEARCH_QUERY_PARAMS_ADD,
-            'commit_url' => $isSavedAlbum ? "/Album/commit/{$albumId}" : "/Album/commit"
+            'commit_url' => $isSavedAlbum ? "/Album/commit/{$albumId}" : "/Album/commit",
+            'platform_pins' => array_keys($sessionService[self::SESS_BULK_SELECTION][self::BULK_PINS] ?? [])
         ];
 
         if ($isSavedAlbum) {
-            $analyticsConfig = $this->serviceProvider->getConfigService()->getValue('analytics');
+            $analyticsConfig = $configService->getValue('analytics');
             if (!empty($analyticsConfig['enabled'])) {
                 $this->serviceProvider->getScriptService()->add('/js/timeFrameSelector.js', defer: true);
 
@@ -661,12 +683,11 @@ final class Album extends BaseRouteProvider
                     }
                 }
 
-                if (!empty($_SESSION[self::SESS_BULK_SELECTION]) && is_array($_SESSION[self::SESS_BULK_SELECTION])) {
-                    $bulkData = $_SESSION[self::SESS_BULK_SELECTION];
-                    if (count($bulkData) > 1) {
-                        $sessionService->setInSession([
-                            self::SESS_BULK_SELECTION => array_slice($bulkData, 1)
-                        ]);
+                if (!empty($sessionService[self::SESS_BULK_SELECTION][self::BULK_SELECTION_DATA]) && is_array($sessionService[self::SESS_BULK_SELECTION][self::BULK_SELECTION_DATA])) {
+                    $bulkData = $sessionService[self::SESS_BULK_SELECTION];
+                    if (count($bulkData[self::BULK_SELECTION_DATA]) > 1) {
+                        $bulkData[self::BULK_SELECTION_DATA] = array_slice($bulkData[self::BULK_SELECTION_DATA], 1);
+                        $sessionService[self::SESS_BULK_SELECTION] = $bulkData;
                     } else {
                         $sessionService->unsetInSession(self::SESS_BULK_SELECTION);
                     }
@@ -674,11 +695,8 @@ final class Album extends BaseRouteProvider
 
                 trigger_notif("The album has been successfully added with the slug '{$slug}'");
             } else if ($sessionAlbumData[self::FUNCTION] == 'edit') {
-                $validator = new DataValidator();
-                $validator->createField('0', FieldType::POSITIVE_INTEGER)
-                    ->addFilter(new ExistsInDB('albums', 'id', $dbConn));
-
-                if (empty($params) || !$validator->validate($params, silent: true)) {
+                $validator = self::createQueryValidator($dbConn);
+                if (!$validator->validate($params, silent: true)) {
                     throw new Exception("Missing or invalid album Id");
                 }
 
@@ -720,5 +738,45 @@ final class Album extends BaseRouteProvider
             trigger_error($e->getMessage());
             return RequestResult::buildRedirectRequestResult("/Album/show");
         }
+    }
+
+    #[Route, RequiredRequestMethod(RequestMethod::GET)]
+    public function pin(): RequestResult
+    {
+        $sessionService = $this->serviceProvider->getSessionService();
+        if (!isset($sessionService[self::SESS_BULK_SELECTION])) {
+            return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+        }
+
+        $queryValidator = self::createBulkPinValidator(true);
+        if (!$queryValidator->validate($_GET)) {
+            return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+        }
+
+        $bulkSessionData = $sessionService[self::SESS_BULK_SELECTION];
+        $bulkSessionData[self::BULK_PINS] = [
+            $queryValidator[self::PLATFORM_FIELD] => $queryValidator[self::PLATFORM_ID_FIELD]
+        ] + $bulkSessionData[self::BULK_PINS];
+        $sessionService[self::SESS_BULK_SELECTION] = $bulkSessionData;
+        return RequestResult::buildRedirectRequestResult();
+    }
+
+    #[Route, RequiredRequestMethod(RequestMethod::GET)]
+    public function unpin(): RequestResult
+    {
+        $sessionService = $this->serviceProvider->getSessionService();
+        if (!isset($sessionService[self::SESS_BULK_SELECTION])) {
+            return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+        }
+
+        $queryValidator = self::createBulkPinValidator(false);
+        if (!$queryValidator->validate($_GET)) {
+            return RequestResult::buildStatusRequestResult(HttpStatusCodes::badRequest);
+        }
+
+        $bulkSessionData = $sessionService[self::SESS_BULK_SELECTION];
+        unset($bulkSessionData[self::BULK_PINS][$queryValidator[self::PLATFORM_FIELD]]);
+        $sessionService[self::SESS_BULK_SELECTION] = $bulkSessionData;
+        return RequestResult::buildRedirectRequestResult();
     }
 }
